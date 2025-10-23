@@ -1,0 +1,330 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+header {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+h1 {
+    margin: 0 0 15px 0;
+    color: #111;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#link-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #fff;
+}
+
+#add-link-btn {
+    background-color: #007bff;
+}
+#add-link-btn:hover {
+    background-color: #0056b3;
+}
+
+#link-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.link-tag {
+    background-color: #e9ecef;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+}
+
+/* Grid de Personagens */
+#dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.card-placeholder, .card-loading {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    color: #888;
+    grid-column: 1 / -1; 
+}
+
+.character-card {
+    background-color: #fff;
+    border: 2px solid #ddd; /* Aumentado para 2px para o status */
+    border-radius: 8px;
+    padding: 15px; /* Reduzido um pouco para a foto */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s ease-in-out;
+    position: relative; 
+}
+.character-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* --- NOVOS ESTILOS DE STATUS --- */
+.card-status-dying {
+    border-color: #dc3545; /* Vermelho */
+}
+.card-status-crazy {
+    border-color: #800080; /* Roxo */
+}
+
+/* --- NOVO CABEÇALHO DO CARD (FOTO + TÍTULO) --- */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+.card-portrait-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%; /* Círculo */
+    object-fit: cover;
+    border: 2px solid #eee;
+}
+.card-portrait-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #f0f2f5;
+    border: 2px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #aaa;
+}
+.card-title h2 {
+    margin: 0;
+    color: #007bff;
+    font-size: 1.25em; /* Pouco menor */
+    /* Removemos o estilo antigo de h2 */
+}
+.card-title span {
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* Estilos dos status principais (Sem mudança) */
+.stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f4f4f4;
+}
+.stat span:first-child {
+    font-weight: bold;
+    color: #555;
+}
+.stat span:last-child {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* --- NOVA SEÇÃO DE STATS DE COMBATE --- */
+.extra-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 12px; /* Espaçamento vertical e horizontal */
+    font-size: 0.85em; /* Fonte menor */
+    color: #555; /* Menos chamativo */
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1px solid #f4f4f4;
+}
+.extra-stats .stat-item {
+    font-weight: bold;
+}
+/* O span interno (valor) herdará as cores de status */
+.extra-stats .stat-item span {
+    font-weight: bold;
+}
+
+
+/* Botão de deletar (Sem mudança) */
+.card-delete-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 22px;
+    height: 22px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px; 
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    opacity: 0.3; 
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+}
+.character-card:hover .card-delete-btn {
+    opacity: 1;
+}
+
+/* Classes de cor (Sem mudança) */
+.stat .status-yellow, .extra-stats .status-yellow {
+    color: #e6b800;
+}
+.stat .status-orange, .extra-stats .status-orange {
+    color: #ff8c00;
+}
+.stat .status-red, .extra-stats .status-red {
+    color: #dc3545;
+}
+.stat .status-darkred, .extra-stats .status-darkred {
+    color: #8b0000;
+}
+
+/* === NOVO SÍMBOLO DE MOVER (DRAG HANDLE) === */
+.card-drag-handle {
+    position: absolute;
+    top: 5px;
+    left: 5px; /* Oposto ao botão de deletar */
+    width: 22px;
+    height: 22px;
+    cursor: move; /* Muda o cursor para "mover" */
+    color: #aaa;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.card-drag-handle svg {
+    fill: #888;
+}
+.character-card:hover .card-drag-handle {
+    opacity: 1; /* Aparece com hover no card */
+}
+
+/* Opcional: Estilo de "fantasma" enquanto arrasta */
+.sortable-ghost {
+    opacity: 0.4;
+    background: #f0f2f5;
+}
+.sortable-chosen {
+    cursor: move;
+}
+
+/* --- Estilos do Header Minim-vel --- */
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px; /* Mantém o espaçamento se estiver aberto */
+}
+
+#toggle-header-btn {
+    width: 28px;
+    height: 28px;
+    background-color: #e9ecef;
+    color: #555;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.2em;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0; /* Impede que o botão encolha */
+}
+#toggle-header-btn:hover {
+    background-color: #ddd;
+}
+
+/* Ícone de +/- no botão */
+header:not(.header-minimized) #toggle-header-btn::before {
+    content: '−'; /* Símbolo de menos */
+}
+header.header-minimized #toggle-header-btn::before {
+    content: '+';
+}
+
+/* A mágica de minimizar */
+header.header-minimized .controls-content {
+    display: none;
+}
+header.header-minimized .header-top {
+    margin-bottom: 0; /* Remove a margem quando fechado */
+}
+
+
+/* --- Media Queries para Responsividade --- */
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px; /* Menos padding em telas pequenas */
+    }
+
+    header {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 1.5em; /* Título um pouco menor */
+    }
+
+    /* Empilha o input e o botão em telas pequenas */
+    .controls {
+        flex-direction: column;
+    }
+
+    #dashboard-grid {
+        /* Permite cards um pouco menores e reduz o gap */
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 15px;
+    }
+}
+
+@media (max-width: 400px) {
+    h1 {
+        font-size: 1.2em;
+    }
+
+    .character-card {
+        padding: 12px; /* Cards um pouco menores */
+    }
+}
