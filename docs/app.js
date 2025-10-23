@@ -16,11 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {boolean} isMinimized 
      */
     function setHeaderState(isMinimized) {
+        // A função 'toggle' com o segundo argumento faz o if/else para nós
+        headerElement.classList.toggle('header-minimized', isMinimized);
+
+        // REMOVEMOS A LINHA QUE ADICIONAVA 'dashboard-compact' AO BODY
+        // document.body.classList.toggle('dashboard-compact', isMinimized); // REMOVA/COMENTE ISSO
+
         if (isMinimized) {
-            headerElement.classList.add('header-minimized');
             localStorage.setItem(HEADER_STATE_KEY, 'minimized');
         } else {
-            headerElement.classList.remove('header-minimized');
             localStorage.setItem(HEADER_STATE_KEY, 'maximized');
         }
     }
@@ -187,6 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // AVISA O SERVIDOR sobre a nova lista de links
         subscribeToLinks(links); 
+        // Se a lista de links ficou vazia, mostra o placeholder
+        if (links.length === 0) {
+            grid.innerHTML = '<div class="card-placeholder">Adicione links de portrait para começar...</div>';
+        }
     }
     
     // renderLinkList
@@ -272,7 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- FUNÇÕES DE LÓGICA DE DADOS ---
     function processBatchData(charactersData) {
-        if (!charactersData) return;
+        if (!charactersData || charactersData.length === 0) return;
+        const placeholder = grid.querySelector('.card-placeholder');
+        if (placeholder) placeholder.remove();
         const links = getLinks(); 
         for (const data of charactersData) {
             const link = data.originalUrl;

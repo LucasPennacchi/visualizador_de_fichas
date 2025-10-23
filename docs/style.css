@@ -1,3 +1,4 @@
+/* frontend/style.css */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: #f0f2f5;
@@ -12,6 +13,12 @@ header {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 20px;
+    /* Adicionada transição para suavizar o "minimizar" */
+    transition: all 0.2s ease-out;
+
+    max-width: 1800px; /* Ou o valor que preferir (ex: 1600px) */
+    margin: 0 auto 20px auto; /* Centraliza (top: 0, h: auto, bottom: 20px, h: auto) */
+    box-sizing: border-box;  /* Garante que o padding não some ao max-width */
 }
 
 h1 {
@@ -65,8 +72,14 @@ button {
 /* Grid de Personagens */
 #dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    /* Grid fluido: cria colunas de no mínimo 240px e estica (1fr) para preencher */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 20px;
+
+    max-width: 1800px; /* Mesmo valor do header */
+    margin: 0 auto;     /* Centraliza o grid */
+    /* Centraliza os cards dentro de suas colunas (células) */
+    justify-items: center;
 }
 
 .card-placeholder, .card-loading {
@@ -76,7 +89,7 @@ button {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     text-align: center;
     color: #888;
-    grid-column: 1 / -1; 
+    grid-column: 1 / -1;
 }
 
 .character-card {
@@ -86,14 +99,24 @@ button {
     padding: 15px; /* Reduzido um pouco para a foto */
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: all 0.2s ease-in-out;
-    position: relative; 
+    position: relative;
+
+    /* Define este elemento como um container para queries */
+    container-type: inline-size;
+    container-name: card;
+
+    /* Define uma largura máxima para o card */
+    max-width: 450px; 
+    /* Garante que o card ocupe 100% do espaço ATÉ o max-width */
+    width: 100%; 
+    box-sizing: border-box; /* Garante que o padding não afete a largura */
 }
 .character-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-/* --- NOVOS ESTILOS DE STATUS --- */
+/* --- ESTILOS DE STATUS --- */
 .card-status-dying {
     border-color: #dc3545; /* Vermelho */
 }
@@ -101,7 +124,7 @@ button {
     border-color: #800080; /* Roxo */
 }
 
-/* --- NOVO CABEÇALHO DO CARD (FOTO + TÍTULO) --- */
+/* --- CABEÇALHO DO CARD (FOTO + TÍTULO) --- */
 .card-header {
     display: flex;
     align-items: center;
@@ -133,14 +156,13 @@ button {
     margin: 0;
     color: #007bff;
     font-size: 1.25em; /* Pouco menor */
-    /* Removemos o estilo antigo de h2 */
 }
 .card-title span {
     font-size: 0.9em;
     color: #666;
 }
 
-/* Estilos dos status principais (Sem mudança) */
+/* Estilos dos status principais */
 .stat {
     display: flex;
     justify-content: space-between;
@@ -156,7 +178,7 @@ button {
     font-size: 1.1em;
 }
 
-/* --- NOVA SEÇÃO DE STATS DE COMBATE --- */
+/* --- SEÇÃO DE STATS DE COMBATE --- */
 .extra-stats {
     display: flex;
     flex-wrap: wrap;
@@ -177,7 +199,7 @@ button {
 }
 
 
-/* Botão de deletar (Sem mudança) */
+/* Botão de deletar */
 .card-delete-btn {
     position: absolute;
     top: 5px;
@@ -187,11 +209,11 @@ button {
     background-color: #dc3545;
     color: white;
     border: none;
-    border-radius: 4px; 
+    border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
     font-size: 14px;
-    opacity: 0.3; 
+    opacity: 0.3;
     transition: opacity 0.2s;
     display: flex;
     align-items: center;
@@ -203,7 +225,7 @@ button {
     opacity: 1;
 }
 
-/* Classes de cor (Sem mudança) */
+/* Classes de cor */
 .stat .status-yellow, .extra-stats .status-yellow {
     color: #e6b800;
 }
@@ -217,7 +239,7 @@ button {
     color: #8b0000;
 }
 
-/* === NOVO SÍMBOLO DE MOVER (DRAG HANDLE) === */
+/* === SÍMBOLO DE MOVER (DRAG HANDLE) === */
 .card-drag-handle {
     position: absolute;
     top: 5px;
@@ -239,7 +261,7 @@ button {
     opacity: 1; /* Aparece com hover no card */
 }
 
-/* Opcional: Estilo de "fantasma" enquanto arrasta */
+/* Estilo de "fantasma" enquanto arrasta */
 .sortable-ghost {
     opacity: 0.4;
     background: #f0f2f5;
@@ -247,6 +269,7 @@ button {
 .sortable-chosen {
     cursor: move;
 }
+
 
 /* --- Estilos do Header Minim-vel --- */
 
@@ -287,12 +310,19 @@ header.header-minimized #toggle-header-btn::before {
 header.header-minimized .controls-content {
     display: none;
 }
+
+header.header-minimized {
+    /* Deixa o header bem mais fino quando minimizado */
+    padding: 8px 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
 header.header-minimized .header-top {
     margin-bottom: 0; /* Remove a margem quando fechado */
 }
 
 
-/* --- Media Queries para Responsividade --- */
+/* --- Media Queries para Responsividade (Geral) --- */
 
 @media (max-width: 600px) {
     body {
@@ -314,7 +344,7 @@ header.header-minimized .header-top {
 
     #dashboard-grid {
         /* Permite cards um pouco menores e reduz o gap */
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 15px;
     }
 }
@@ -326,5 +356,81 @@ header.header-minimized .header-top {
 
     .character-card {
         padding: 12px; /* Cards um pouco menores */
+    }
+}
+
+
+/* --- CSS CONTAINER QUERIES --- */
+/* Regras que mudam o CONTEÚDO DO CARD baseado no TAMANHO DO CARD */
+
+/* * ESTADO COMPACTO: 
+ * Quando o card for espremido e ficar com MENOS de 230px de largura
+ */
+@container card (width < 230px) {
+    .character-card {
+        padding: 10px;
+        border-width: 1px;
+    }
+
+    .card-header {
+        gap: 8px;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+    }
+
+    .card-portrait-img,
+    .card-portrait-placeholder {
+        width: 45px;
+        height: 45px;
+    }
+
+    .card-title h2 {
+        font-size: 1.1em;
+    }
+
+    .card-title span {
+        font-size: 0.8em;
+    }
+
+    .stat {
+        padding: 5px 0;
+        font-size: 0.9em;
+        border-bottom: none;
+    }
+
+    .stat span:last-child {
+        font-size: 1em;
+    }
+
+    .extra-stats {
+        margin-top: 8px;
+        padding-top: 8px;
+        font-size: 0.75em;
+        gap: 4px 8px;
+    }
+}
+
+
+/* * ESTADO MINÚSCULO: 
+ * Quando o card for MUITO espremido (menos de 180px)
+ */
+@container card (width < 180px) {
+    /* Esconde a foto para economizar espaço */
+    .card-portrait-img,
+    .card-portrait-placeholder {
+        display: none;
+    }
+    
+    .card-title h2 {
+        font-size: 1em; /* Fonte ainda menor */
+    }
+
+    /* Esconde os stats extras */
+    .extra-stats {
+        display: none;
+    }
+
+    .stat {
+        font-size: 0.85em;
     }
 }
