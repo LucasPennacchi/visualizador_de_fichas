@@ -1,0 +1,28 @@
+{
+  "name": "visualizadorfichas",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node start.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LucasPennacchi/visualizador_de_fichas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LucasPennacchi/visualizador_de_fichas/issues"
+  },
+  "homepage": "https://github.com/LucasPennacchi/visualizador_de_fichas#readme",
+  "devDependencies": {
+    "axios": "^1.12.2",
+    "clipboardy": "^5.0.0"
+  }
+}
