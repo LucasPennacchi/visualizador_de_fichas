@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GM Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <h1>GM Dashboard - Status dos Personagens</h1>
+        <button id="toggle-header-btn" title="Minimizar/Maximizar"></button>
+    </div>
+    <div class="controls-content">
+        <div class="controls">
+            <input type="text" id="link-input" placeholder="Cole o link do portrait do personagem aqui">
+            <button id="add-link-btn">Adicionar Personagem</button>
+        </div>
+        <div id="link-list">
+            <!-- As tags de link continuam aqui -->
+        </div>
+    </div>
+</header>
+
+<main id="dashboard-grid">
+    <!-- O placeholder será adicionado/removido via JS -->
+</main>
+
+<!-- Bibliotecas de terceiros -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+<!--
+  Carrega o main.js como um "module".
+  Isso ativa o sistema de import/export.
+-->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
