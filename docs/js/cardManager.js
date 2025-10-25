@@ -1,22 +1,31 @@
 import { getLinks } from './storage.js';
-import { createOrUpdateCard } from './ui.js'; // CORREÇÃO 1: Importar SÓ o que é exportado.
+import { createOrUpdateCard, togglePlaceholder } in './ui.js';
 import { DATA_STORAGE_KEY } from './config.js';
 
 /**
  * Converte a resposta complexa do Firestore para o objeto "achatado" que a UI espera.
- * MOVIDO para cá, pois isto é processamento de dados.
+ * AGORA É DEFENSIVO: Verifica se 'data' e 'data.fields' existem.
  */
 function flattenFirestoreData(originalUrl, data) {
     try {
+        // ---- INÍCIO DA CORREÇÃO ----
+        // 1. Verifica se 'data' e 'data.fields' existem.
+        if (!data || !data.fields) {
+            console.error("Dados recebidos do backend estão vazios ou malformados.", originalUrl, data);
+            return null; // Retorna nulo para que o processador saiba que falhou
+        }
+        // ---- FIM DA CORREÇÃO ----
+
         const fields = data.fields;
-        // Funções helper para extrair valores com segurança
+
+        // Funções helper para extrair valores com segurança (agora mais seguras)
         const s = (val) => val?.stringValue || '';
         const i = (val) => val?.integerValue || '0';
         const b = (val) => val?.booleanValue || false;
 
         return {
             originalUrl: originalUrl,
-            name: s(fields.name),
+            name: s(fields.name), // Linha 19 (agora segura)
             hp: `${i(fields.currentPv)}/${i(fields.maxPv)}`,
             sanity: `${i(fields.currentSan)}/${i(fields.maxSan)}`,
             effort: `${i(fields.currentPe)}/${i(fields.maxPe)}`,
@@ -31,14 +40,13 @@ function flattenFirestoreData(originalUrl, data) {
             load: `${i(fields.currentLoad)}/${i(fields.maxLoad)}`
         };
     } catch (e) {
-        console.error("Erro ao achatar dados do Firestore:", e, data);
-        return null;
+        console.error("Erro ao 'achatar' dados do Firestore:", e, data);
+        return null; // Retorna nulo em caso de qualquer erro
     }
 }
 
 /**
  * Processa dados vindos do WebSocket (1 por 1) ou do Cache (vários)
- * @param {Array<Object>} charactersData - Um array de payloads do backend { originalUrl, data }
  */
 export function processBatchData(charactersData) {
     if (!charactersData || charactersData.length === 0) return;
@@ -46,7 +54,6 @@ export function processBatchData(charactersData) {
     const links = getLinks();
 
     // O cache atual é lido apenas para ser sobrescrito se houver dados novos
-    // Isto é mais simples do que tentar fazer um "merge"
     const currentCache = (JSON.parse(localStorage.getItem(DATA_STORAGE_KEY)) || []).filter(item => links.includes(item.originalUrl));
     const newCacheMap = new Map(currentCache.map(item => [item.originalUrl, item]));
 
@@ -60,13 +67,25 @@ export function processBatchData(charactersData) {
 
         // 1. Achata os dados para o formato da UI
         const flattenedData = flattenFirestoreData(originalUrl, data);
-        if (!flattenedData) continue;
 
-        // 2. CORREÇÃO 2: Chama a função correta da UI para renderizar
+        // ---- CORREÇÃO ----
+        // 2. Se o 'flatten' falhou (retornou null), não faz nada.
+        if (!flattenedData) {
+            console.warn(`Falha ao processar dados para ${originalUrl}. Pulando.`);
+            continue;
+        }
+        // ---- FIM DA CORREÇÃO ----
+
+        // 3. Chama a função da UI para renderizar
         createOrUpdateCard(originalUrl, flattenedData);
 
-        // 3. Atualiza o mapa do novo cache com os dados BRUTOS (vindos do backend)
+        // 4. Atualiza o mapa do novo cache com os dados BRUTOS (vindos do backend)
         newCacheMap.set(originalUrl, payload);
+    }
+
+    // 5. Garante que o placeholder não está visível
+    if (newCacheMap.size > 0) {
+        togglePlaceholder(false);
     }
 
     // Salva o cache atualizado no localStorage
@@ -75,14 +94,22 @@ export function processBatchData(charactersData) {
 
 /**
  * Carrega os dados do cache local ao iniciar.
- * Esta função pertence ao cardManager.
  */
 export function loadCachedData() {
-    const cachedData = JSON.parse(localStorage.getItem(DATA_STORAGE_KEY));
+    const links = getLinks();
+    const cachedData = (JSON.parse(localStorage.getItem(DATA_STORAGE_KEY)) || [])
+        .filter(item => links.includes(item.originalUrl)); // Filtra apenas os links que ainda usamos
+
     if (cachedData && cachedData.length > 0) {
         console.log(`[Cache Cliente] Carregando ${cachedData.length} cards "velhos"...`);
+        togglePlaceholder(false);
         // Reutiliza a mesma função de processamento
         processBatchData(cachedData);
+    } else if (links.length === 0) {
+        togglePlaceholder(true);
+    } else {
+        // Temos links, mas nenhum cache.
+        togglePlaceholder(false);
+        console.log("[Cache Cliente] Links encontrados, mas sem cache. Aguardando dados ao vivo.");
     }
 }
-

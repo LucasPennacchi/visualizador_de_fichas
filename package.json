@@ -1,0 +1,13 @@
+{
+  "name": "gm-dashboard-backend-scripts",
+  "version": "1.0.0",
+  "description": "Scripts para iniciar o backend Java e o Ngrok",
+  "main": "start.js",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "devDependencies": {
+    "axios": "^1.7.2",
+    "clipboardy": "^4.0.0"
+  }
+}

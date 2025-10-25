@@ -9,9 +9,14 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                // CORREÇÃO: Trocamos allowedOrigins por allowedOriginPatterns
-                .allowedOriginPatterns("*")
+                // CORREÇÃO: Trocámos o padrão wildcard por origens explícitas
+                .allowedOrigins(
+                        "https://lucaspennacchi.github.io", // A sua página de produção
+                        "http://localhost:8080",            // O seu frontend local (quando servido pelo 'docs')
+                        "http://127.0.0.1:8080"           // Outra forma de aceder localmente
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowCredentials(true); // Explicitamente permitir credenciais
+                .allowCredentials(true); // Permitir credenciais (necessário para SockJS)
     }
 }
+

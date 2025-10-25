@@ -1,20 +1,27 @@
 package br.com.visualizadorfichas.gm_dashboard_backend.service;
 
 import br.com.visualizadorfichas.gm_dashboard_backend.model.FirestoreResponse;
-import lombok.extern.slf4j.Slf4j;
+// import lombok.extern.slf4j.Slf4j; // 1. REMOVIDO O @Slf4j
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+// 2. IMPORTS ADICIONADOS
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Slf4j // Para logar (console.log)
+// @Slf4j // 1. ANOTAÇÃO REMOVIDA
 @Service
 public class CharacterDataService {
+
+    // 3. VARIÁVEL 'log' DECLARADA MANUALMENTE
+    private static final Logger log = LoggerFactory.getLogger(CharacterDataService.class);
 
     // 1. O substituto do "axios"
     private final WebClient webClient;
@@ -26,7 +33,6 @@ public class CharacterDataService {
     private final Map<String, FirestoreResponse> characterCache = new ConcurrentHashMap<>();
 
     // 4. O substituto da lógica de "clientSubscriptions"
-    // Usamos um Set simples, pois com STOMP não precisamos saber *qual* cliente assiste
     private final Set<String> watchedLinks = ConcurrentHashMap.newKeySet();
 
     // Injeção de dependências (o Spring faz isso)

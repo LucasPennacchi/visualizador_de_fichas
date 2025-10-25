@@ -18,9 +18,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // CORREÇÃO: Trocamos setAllowedOrigins por setAllowedOriginPatterns
+        // CORREÇÃO: Trocámos o padrão wildcard por origens explícitas
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*") // MUDANÇA AQUI
+                .setAllowedOrigins(
+                        "https://lucaspennacchi.github.io", // A sua página de produção
+                        "http://localhost:8080",            // O seu frontend local
+                        "http://127.0.0.1:8080"           // Outra forma de aceder localmente
+                )
                 .withSockJS();
     }
 }
+
