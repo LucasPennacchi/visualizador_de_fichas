@@ -1,5 +1,5 @@
 import { getLinks } from './storage.js';
-import { createOrUpdateCard, togglePlaceholder } in './ui.js';
+import { createOrUpdateCard, togglePlaceholder } from './ui.js';
 import { DATA_STORAGE_KEY } from './config.js';
 
 /**
