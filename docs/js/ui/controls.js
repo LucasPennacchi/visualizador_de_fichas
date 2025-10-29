@@ -3,75 +3,115 @@ import { getLinks, saveLinks, getHeaderState, saveHeaderState } from '../store.j
 
 // --- Variáveis do Módulo ---
 let headerElement, toggleBtn, linkInput, addBtn, linkListContainer;
-let onAddLinksCallback = null; // Callback para notificar o main.js
+let onAddLinksCallback = null; 
+
+// --- URL Base para normalização ---
+const BASE_PORTRAIT_URL = "https://crisordemparanormal.com/agente/";
 
 /**
  * Renderiza a lista de "tags" de links no header.
  */
 export function renderLinkList() {
-  linkListContainer.innerHTML = '';
-  const links = getLinks();
-  links.forEach((link) => {
-    const tag = document.createElement('div');
-    tag.className = 'link-tag';
-    tag.innerHTML = `<span>${link.substring(0, 40)}...</span>`;
-    linkListContainer.appendChild(tag);
-  });
+    linkListContainer.innerHTML = '';
+    const links = getLinks();
+    links.forEach((link) => {
+        const tag = document.createElement('div');
+        tag.className = 'link-tag';
+        tag.innerHTML = `<span>...${link.slice(-40)}</span>`; 
+        linkListContainer.appendChild(tag);
+    });
 }
 
 /**
  * Define o estado do header (minimizado ou maximizado).
- * @param {boolean} isMinimized 
  */
 function setHeaderState(isMinimized) {
-  headerElement.classList.toggle('header-minimized', isMinimized);
-  saveHeaderState(isMinimized ? 'minimized' : 'maximized');
+    headerElement.classList.toggle('header-minimized', isMinimized);
+    saveHeaderState(isMinimized ? 'minimized' : 'maximized');
 }
 
 /**
  * Carrega o estado salvo do header ao iniciar a página.
  */
 function loadHeaderState() {
-  const savedState = getHeaderState();
-  setHeaderState(savedState === 'minimized');
+    const savedState = getHeaderState();
+    setHeaderState(savedState === 'minimized');
+}
+
+/**
+ * Recebe um input (link completo ou código) e retorna o link completo.
+ * Retorna null se a entrada for inválida.
+ */
+function normalizeInputToUrl(input) {
+    const trimmedInput = input.trim();
+    if (!trimmedInput) {
+        return null; 
+    }
+
+    if (trimmedInput.toLowerCase().startsWith('http')) {
+        try {
+            new URL(trimmedInput); 
+            return trimmedInput;
+        } catch (e) {
+            console.warn(`Entrada "${trimmedInput}" parece um URL, mas é inválido.`);
+            return null; 
+        }
+    } 
+    else if (/^[a-zA-Z0-9]+$/.test(trimmedInput)) { 
+        return BASE_PORTRAIT_URL + trimmedInput;
+    } 
+    else {
+        console.warn(`Entrada "${trimmedInput}" não reconhecida como URL ou código.`);
+        return null; 
+    }
 }
 
 /**
  * Lógica do botão "Adicionar Personagem".
  */
 function handleAddClick() {
-  const input = linkInput.value.trim();
-  if (!input) return;
-  
-  let linksToAdd = [];
-  if (input.startsWith('[') && input.endsWith(']')) {
-    const linksString = input.slice(1, -1);
-    linksToAdd = linksString.split(',').map(link => link.trim()).filter(link => link);
-  } else {
-    linksToAdd = [input];
-  }
-  
-  if (linksToAdd.length === 0) return;
-  
-  const existingLinks = getLinks();
-  let addedCount = 0;
-  linksToAdd.forEach(newLink => {
-    if (!existingLinks.includes(newLink)) {
-      existingLinks.push(newLink);
-      addedCount++;
-    }
-  });
-  
-  if (addedCount > 0) {
-    saveLinks(existingLinks);
-    renderLinkList();
-    // Notifica o main.js que a lista mudou, para ele poder
-    // chamar o subscribeToLinks
-    if (onAddLinksCallback) {
-      onAddLinksCallback(existingLinks);
-    }
-  }
-  linkInput.value = '';
+    const rawInput = linkInput.value.trim();
+    if (!rawInput) return;
+    
+    let inputsToAdd = [];
+    if (rawInput.startsWith('[') && rawInput.endsWith(']')) {
+        const linksString = rawInput.slice(1, -1); 
+        inputsToAdd = linksString.split(',') 
+                               .map(link => link.trim()) 
+                               .filter(link => link); 
+    } else {
+        inputsToAdd = [rawInput];
+    }
+    
+    if (inputsToAdd.length === 0) return;
+    
+    const existingLinks = getLinks();
+    let addedCount = 0;
+    const linksToAddNormalized = []; 
+
+    inputsToAdd.forEach(input => {
+        const normalizedUrl = normalizeInputToUrl(input);
+        
+        if (normalizedUrl && !existingLinks.includes(normalizedUrl)) {
+            existingLinks.push(normalizedUrl); 
+            addedCount++;
+            linksToAddNormalized.push(normalizedUrl); 
+        } else if (!normalizedUrl) {
+            console.warn(`Item "${input}" ignorado por ser inválido.`);
+        } else {
+            console.log(`Item "${normalizedUrl}" já existe, ignorando.`);
+        }
+    });
+    
+    if (addedCount > 0) {
+        saveLinks(existingLinks); 
+        renderLinkList(); 
+        
+        if (onAddLinksCallback) {
+            onAddLinksCallback(existingLinks); 
+        }
+    }
+    linkInput.value = ''; 
 }
 
 /**
@@ -79,22 +119,31 @@ function handleAddClick() {
  * @param {function} onAddLinks - Callback a ser chamado quando links são adicionados.
  */
 export function initializeControls(onAddLinks) {
-  headerElement = document.querySelector('header');
-  toggleBtn = document.getElementById('toggle-header-btn');
-  linkInput = document.getElementById('link-input');
-  addBtn = document.getElementById('add-link-btn');
-  linkListContainer = document.getElementById('link-list');
-  onAddLinksCallback = onAddLinks;
+    headerElement = document.querySelector('header');
+    toggleBtn = document.getElementById('toggle-header-btn');
+    linkInput = document.getElementById('link-input');
+    addBtn = document.getElementById('add-link-btn');
+    linkListContainer = document.getElementById('link-list');
+    onAddLinksCallback = onAddLinks;
 
-  // Listeners
-  toggleBtn.addEventListener('click', () => {
-    const isCurrentlyMinimized = headerElement.classList.contains('header-minimized');
-    setHeaderState(!isCurrentlyMinimized);
-  });
-  
-  addBtn.addEventListener('click', handleAddClick);
+    // Listener do botão de minimizar/maximizar
+    toggleBtn.addEventListener('click', () => {
+        const isCurrentlyMinimized = headerElement.classList.contains('header-minimized');
+        setHeaderState(!isCurrentlyMinimized);
+    });
+    
+    // Listener do botão "Adicionar"
+    addBtn.addEventListener('click', handleAddClick);
 
-  // Carga inicial
-  loadHeaderState();
-  renderLinkList();
+    linkInput.addEventListener('keydown', (event) => {
+        // Verifica se a tecla pressionada foi "Enter"
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Impede o comportamento padrão (como submeter um formulário)
+            handleAddClick();     // Chama a mesma função do botão de clique
+        }
+    });
+
+    // Carga inicial
+    loadHeaderState();
+    renderLinkList();
 }
