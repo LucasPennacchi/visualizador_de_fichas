@@ -13,7 +13,6 @@ const parseArray = (field, mapper) => {
 // Mapper para Habilidades (Powers)
 const mapPower = (item) => ({
   name: item.mapValue.fields.name.stringValue,
-  // Remove tags HTML da descrição
   description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, '') 
 });
 
@@ -29,6 +28,16 @@ const mapRitual = (item) => ({
   name: item.mapValue.fields.name.stringValue,
   description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, '')
 });
+
+// Mapper para Perícias
+const mapSkill = (item) => {
+  const fields = item.mapValue.fields;
+  return {
+    name: fields.name.stringValue,
+    attribute: fields.attribute.stringValue, // Ex: "AGI", "VIG", "PRE"
+    bonus: parseInt(fields.trainingDegree.stringValue, 10) || 0
+  };
+};
 
 
 /**
@@ -57,7 +66,6 @@ async function fetchFromGoogle(characterId) {
       className: fields.className.stringValue,
       load: `${fields.currentLoad.integerValue}/${fields.maxLoad.integerValue}`,
 
-      // Dados para as novas seções
       attributes: {
         str: fields.attributes.mapValue.fields.str.integerValue,
         dex: fields.attributes.mapValue.fields.dex.integerValue,
@@ -67,7 +75,8 @@ async function fetchFromGoogle(characterId) {
       },
       powers: parseArray(fields.powers, mapPower),
       inventory: parseArray(fields.inventory, mapInventoryItem),
-      rituals: parseArray(fields.rituals, mapRitual)
+      rituals: parseArray(fields.rituals, mapRitual),
+      skills: parseArray(fields.skills, mapSkill)
     };
     return { data: characterData, lastFetchTime: Date.now() };
   } catch (error) {

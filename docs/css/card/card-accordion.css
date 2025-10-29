@@ -61,16 +61,11 @@
 }
 .accordion-header.active + .accordion-content {
   grid-template-rows: 1fr;
-  /* O padding é aplicado no estado aberto, mas nos wrappers internos
-    para não "pular" o conteúdo. Vamos ajustar isso. */
-  /* padding: 12px; (REMOVIDO) */
   border-top: 1px solid #eee;
 }
-/* Adiciona padding ao wrapper interno quando o accordion PAI está aberto */
 .accordion-header.active + .accordion-content .accordion-inner {
-  padding: 8px 4px; /* Espaçamento leve ao redor da lista de itens */
+  padding: 8px 4px; 
 }
-
 
 .accordion-content .list-placeholder {
   color: #888;
@@ -78,19 +73,13 @@
   padding: 12px;
 }
 
-/* --- ESTILOS ANTIGOS .list-item REMOVIDOS --- */
-
-
-/* --- NOVOS ESTILOS: Accordion Aninhado (Item Individual) --- */
-
+/* --- Accordion Aninhado (Item Individual) --- */
 .inner-accordion-item {
   border-bottom: 1px solid #f4f4f4;
 }
 .inner-accordion-item:last-child {
   border-bottom: none;
 }
-
-/* Cabeçalho do item (Nome da Habilidade, etc) */
 .inner-accordion-header {
   padding: 10px 8px;
   cursor: pointer;
@@ -105,8 +94,6 @@
 .inner-accordion-header:hover {
   background-color: #f9f9f9;
 }
-
-/* Ícone de +/- no item aninhado */
 .inner-accordion-header::after {
   content: '+';
   font-weight: bold;
@@ -114,45 +101,63 @@
   font-size: 1.1em;
   margin-left: 10px;
   transition: transform 0.2s ease-out;
-  transform: rotate(-90deg); /* Começa "fechado" e rotacionado */
+  transform: rotate(-90deg); 
 }
 .inner-accordion-header.active::after {
   content: '−';
-  transform: rotate(0deg); /* Gira para a posição "aberto" */
+  transform: rotate(0deg); 
 }
-
-/* Span de "slots" do inventário */
 .inner-accordion-header .item-slots {
   font-size: 0.9em;
   color: #007bff;
   font-weight: bold;
-  margin-left: auto; /* Joga para a esquerda, antes do '+' */
+  margin-left: auto; 
   padding-right: 10px;
 }
-
-/* Conteúdo (descrição) do item aninhado */
 .inner-accordion-content {
   display: grid;
-  grid-template-rows: 0fr; /* Começa fechado */
+  grid-template-rows: 0fr; 
   transition: grid-template-rows 0.3s ease-out;
   font-size: 0.95em;
-  background-color: #fafafa; /* Fundo levemente acinzentado */
+  background-color: #fafafa; 
 }
-
 .inner-accordion-header.active + .inner-accordion-content {
-  grid-template-rows: 1fr; /* Abre */
+  grid-template-rows: 1fr; 
 }
-
 .inner-accordion-inner {
   overflow: hidden;
   min-height: 0;
 }
- 
-/* Parágrafo da descrição */
 .inner-accordion-inner p {
   color: #666;
   margin: 0;
-  padding: 8px 12px 12px 12px; /* Espaçamento interno da descrição */
+  padding: 8px 12px 12px 12px; 
   border-top: 1px dashed #eee;
   line-height: 1.4;
+}
+
+/* --- NOVA ADIÇÃO: Estilos da Lista de Perícias --- */
+
+/* Estilo para a lista de perícias (NÃO é um accordion) */
+.skill-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 8px; /* Mais espaçado que o accordion aninhado */
+  border-bottom: 1px solid #f4f4f4;
+}
+.skill-item:last-child {
+  border-bottom: none;
+}
+.skill-name {
+  font-weight: bold;
+  color: #333;
+  font-size: 0.95em;
+}
+.skill-value {
+  font-weight: bold;
+  font-size: 1em;
+  color: #007bff; /* Azul, para destaque */
+  white-space: nowrap; /* Impede que "4d20 + 5" quebre a linha */
+  margin-left: 10px;
 }
