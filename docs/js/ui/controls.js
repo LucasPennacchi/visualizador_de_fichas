@@ -1,5 +1,6 @@
 // js/ui/controls.js
 import { getLinks, saveLinks, getHeaderState, saveHeaderState } from '../store.js';
+import { getCharacterIdFromUrl } from './utils.js';
 
 // --- Variáveis do Módulo ---
 let headerElement, toggleBtn, linkInput, addBtn, linkListContainer;
@@ -86,20 +87,29 @@ function handleAddClick() {
     if (inputsToAdd.length === 0) return;
     
     const existingLinks = getLinks();
+    // Cria um Set (lista de itens únicos) com os IDs dos links já existentes
+    const existingIds = new Set(existingLinks.map(getCharacterIdFromUrl).filter(id => id));
+    
     let addedCount = 0;
-    const linksToAddNormalized = []; 
 
     inputsToAdd.forEach(input => {
         const normalizedUrl = normalizeInputToUrl(input);
         
-        if (normalizedUrl && !existingLinks.includes(normalizedUrl)) {
-            existingLinks.push(normalizedUrl); 
-            addedCount++;
-            linksToAddNormalized.push(normalizedUrl); 
-        } else if (!normalizedUrl) {
+        if (!normalizedUrl) {
             console.warn(`Item "${input}" ignorado por ser inválido.`);
-        } else {
-            console.log(`Item "${normalizedUrl}" já existe, ignorando.`);
+            return; // Pula este item
+        }
+
+        // Pega o ID do novo URL normalizado
+        const newId = getCharacterIdFromUrl(normalizedUrl);
+
+        // Verifica se o ID é válido e se já não existe no Set
+        if (newId && !existingIds.has(newId)) {
+            existingLinks.push(normalizedUrl); // Adiciona o URL completo
+            existingIds.add(newId); // Adiciona o novo ID ao Set para checagem futura
+            addedCount++;
+        } else if (existingIds.has(newId)) {
+            console.log(`Personagem com ID "${newId}" já existe, ignorando.`);
         }
     });
     

@@ -77,3 +77,20 @@ export function updateStatusClass(element, newClass) {
     element.classList.add(newClass);
   }
 }
+
+/**
+ * Extrai o ID do personagem de um URL completo.
+ * @param {string} url - O URL do portrait.
+ * @returns {string | null} O ID ou null.
+ */
+export function getCharacterIdFromUrl(url) {
+    try {
+        const targetUrl = new URL(url);
+        const pathParts = targetUrl.pathname.split('/');
+        // Pega o último item que não seja vazio (para lidar com / no final)
+        return pathParts.filter(p => p).pop() || null;
+    } catch (error) {
+        console.error('URL inválida para extrair ID:', url);
+        return null;
+    }
+}
