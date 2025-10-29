@@ -1,17 +1,11 @@
 @echo off
-title GM Dashboard Server
-
-REM Muda o diretorio para a pasta onde este .bat esta localizado.
-REM Isso e crucial para o 'npm start' encontrar o 'package.json'.
-cd /d %~dp0
-
-echo Iniciando o GM Dashboard (Backend + Ngrok)...
+title GM Dashboard - Servidores
+echo Iniciando GM Dashboard (Backend + Ngrok)...
+echo.
+echo Pressione Ctrl+C nesta janela a qualquer momento para parar TUDO.
 echo.
 
-REM Roda o script de automacao
-npm start
+REM Executa o script Node.js que faz todo o trabalho
+node start.js
 
-REM O script so chegara aqui quando voce fechar o 'npm start' (com Ctrl+C)
-echo.
-echo Servidores finalizados.
-pause
+REM O script start.js já gerencia o encerramento dos processos filhos
