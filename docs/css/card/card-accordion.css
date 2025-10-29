@@ -1,0 +1,158 @@
+/* frontend/css/card/card-accordion.css */
+
+.card-expand-content {
+  display: grid;
+  grid-template-rows: 0fr; /* Começa "fechado" */
+  transition: grid-template-rows 0.3s ease-out;
+  margin-top: 0;
+  cursor: default; 
+}
+.card-expand-inner {
+  overflow: hidden;
+  min-height: 0; 
+}
+.character-card.card-expanded .card-expand-content {
+  grid-template-rows: 1fr; 
+  margin-top: 15px; 
+}
+
+/* Layout do item do accordion PAI*/
+.accordion-item {
+  border: 1px solid #eee;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  overflow: hidden; 
+}
+.accordion-header {
+  background-color: #f9f9f9;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #555;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.accordion-header:hover {
+  background-color: #f1f1f1;
+}
+.accordion-header::after {
+  content: '+';
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #888;
+}
+.accordion-header.active::after {
+  content: '−';
+}
+
+/* Conteúdo do accordion PAI */
+.accordion-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease-out, padding 0.3s ease-out;
+  padding: 0 12px; 
+  background-color: #fff;
+  font-size: 0.9em;
+}
+.accordion-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.accordion-header.active + .accordion-content {
+  grid-template-rows: 1fr;
+  /* O padding é aplicado no estado aberto, mas nos wrappers internos
+    para não "pular" o conteúdo. Vamos ajustar isso. */
+  /* padding: 12px; (REMOVIDO) */
+  border-top: 1px solid #eee;
+}
+/* Adiciona padding ao wrapper interno quando o accordion PAI está aberto */
+.accordion-header.active + .accordion-content .accordion-inner {
+  padding: 8px 4px; /* Espaçamento leve ao redor da lista de itens */
+}
+
+
+.accordion-content .list-placeholder {
+  color: #888;
+  font-style: italic;
+  padding: 12px;
+}
+
+/* --- ESTILOS ANTIGOS .list-item REMOVIDOS --- */
+
+
+/* --- NOVOS ESTILOS: Accordion Aninhado (Item Individual) --- */
+
+.inner-accordion-item {
+  border-bottom: 1px solid #f4f4f4;
+}
+.inner-accordion-item:last-child {
+  border-bottom: none;
+}
+
+/* Cabeçalho do item (Nome da Habilidade, etc) */
+.inner-accordion-header {
+  padding: 10px 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+.inner-accordion-header:hover {
+  background-color: #f9f9f9;
+}
+
+/* Ícone de +/- no item aninhado */
+.inner-accordion-header::after {
+  content: '+';
+  font-weight: bold;
+  color: #aaa;
+  font-size: 1.1em;
+  margin-left: 10px;
+  transition: transform 0.2s ease-out;
+  transform: rotate(-90deg); /* Começa "fechado" e rotacionado */
+}
+.inner-accordion-header.active::after {
+  content: '−';
+  transform: rotate(0deg); /* Gira para a posição "aberto" */
+}
+
+/* Span de "slots" do inventário */
+.inner-accordion-header .item-slots {
+  font-size: 0.9em;
+  color: #007bff;
+  font-weight: bold;
+  margin-left: auto; /* Joga para a esquerda, antes do '+' */
+  padding-right: 10px;
+}
+
+/* Conteúdo (descrição) do item aninhado */
+.inner-accordion-content {
+  display: grid;
+  grid-template-rows: 0fr; /* Começa fechado */
+  transition: grid-template-rows 0.3s ease-out;
+  font-size: 0.95em;
+  background-color: #fafafa; /* Fundo levemente acinzentado */
+}
+
+.inner-accordion-header.active + .inner-accordion-content {
+  grid-template-rows: 1fr; /* Abre */
+}
+
+.inner-accordion-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+ 
+/* Parágrafo da descrição */
+.inner-accordion-inner p {
+  color: #666;
+  margin: 0;
+  padding: 8px 12px 12px 12px; /* Espaçamento interno da descrição */
+  border-top: 1px dashed #eee;
+  line-height: 1.4;
+}

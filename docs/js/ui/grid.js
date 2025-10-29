@@ -6,16 +6,32 @@ let gridElement = null;
 let onDeleteCallback = null;
 
 // --- Funções de Renderização de Lista (Internas) ---
+
+// --- MODIFICADO ---
+// Transforma o item da lista em um accordion aninhado
 const renderListItem = (item) => `
-    <div class="list-item">
-        <strong>${item.name}</strong>
-        ${item.description ? `<p>${item.description}</p>` : ''}
+    <div class="inner-accordion-item">
+        <div class="inner-accordion-header">${item.name}</div>
+        <div class="inner-accordion-content">
+            <div class="inner-accordion-inner">
+                <p>${item.description || 'Sem descrição.'}</p>
+            </div>
+        </div>
     </div>`;
 
+// --- MODIFICADO ---
+// Transforma o item de inventário em um accordion aninhado
 const renderInventoryItem = (item) => `
-    <div class="list-item">
-        <strong>${item.name}</strong> <span class="item-slots">(Espaços: ${item.slots})</span>
-        ${item.description ? `<p>${item.description}</p>` : ''}
+    <div class="inner-accordion-item">
+        <div class="inner-accordion-header">
+            ${item.name}
+            <span class="item-slots">(Espaços: ${item.slots})</span>
+        </div>
+        <div class="inner-accordion-content">
+            <div class="inner-accordion-inner">
+                <p>${item.description || 'Sem descrição.'}</p>
+            </div>
+        </div>
     </div>`;
 
 const placeholder = '<div class="list-placeholder">Nenhum</div>';
@@ -23,10 +39,9 @@ const placeholder = '<div class="list-placeholder">Nenhum</div>';
 
 /**
  * Cria o HTML de um card totalmente novo.
- * @param {HTMLElement} cardElement - O elemento <div> do card.
- * @param {object} data - Os dados do personagem.
+ * (Esta função não precisa mudar, pois usa os helpers acima)
  */
-function renderNewCardHTML(cardElement, data) {
+export function renderNewCardHTML(cardElement, data) {
   const hpClass = utils.getStatusClass(data.hp);
   const sanClass = utils.getStatusClass(data.sanity);
   const peClass = utils.getStatusClass(data.effort);
@@ -56,35 +71,42 @@ function renderNewCardHTML(cardElement, data) {
       <div class="attr-item"><span class="attr-label">PRE</span><span class="attr-value" data-attr="pre">${data.attributes.pre}</span></div>
     </div>
     <div class="card-expand-content">
-      <div class="accordion-item">
-        <div class="accordion-header">Habilidades</div>
-        <div class="accordion-content" data-type="habilidades">
-          ${data.powers.length > 0 ? data.powers.map(renderListItem).join('') : placeholder}
+      <div class="card-expand-inner"> 
+        <div class="accordion-item">
+          <div class="accordion-header">Habilidades</div>
+          <div class="accordion-content" data-type="habilidades">
+            <div class="accordion-inner"> 
+              ${data.powers.length > 0 ? data.powers.map(renderListItem).join('') : placeholder}
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header">Rituais</div>
-        <div class="accordion-content" data-type="rituais">
-          ${data.rituals.length > 0 ? data.rituals.map(renderListItem).join('') : placeholder}
+        <div class="accordion-item">
+          <div class="accordion-header">Rituais</div>
+          <div class="accordion-content" data-type="rituais">
+            <div class="accordion-inner"> 
+              ${data.rituals.length > 0 ? data.rituals.map(renderListItem).join('') : placeholder}
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="accordion-item">
-        <div class="accordion-header">Inventário</div>
-        <div class="accordion-content" data-type="inventario">
-          ${data.inventory.length > 0 ? data.inventory.map(renderInventoryItem).join('') : placeholder}
+        <div class="accordion-item">
+          <div class="accordion-header">Inventário</div>
+          <div class="accordion-content" data-type="inventario">
+            <div class="accordion-inner"> 
+              ${data.inventory.length > 0 ? data.inventory.map(renderInventoryItem).join('') : placeholder}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   `;
-  cardElement.setAttribute('data-rendered', 'true');
 }
 
 /**
  * Atualiza um card já existente no DOM com novos dados.
- * @param {HTMLElement} cardElement - O elemento <div> do card.
- * @param {object} data - Os dados do personagem.
+ * (Esta função não precisa mudar, pois usa os helpers acima)
  */
 export function updateExistingCard(cardElement, data) {
+  // --- Atualizações de Status e Header (Não mudam) ---
   cardElement.classList.remove('card-status-dying', 'card-status-crazy');
   if (data.isDying) cardElement.classList.add('card-status-dying');
   else if (data.isCrazy) cardElement.classList.add('card-status-crazy');
@@ -113,21 +135,19 @@ export function updateExistingCard(cardElement, data) {
   utils.updateText(cardElement.querySelector('[data-attr="int"]'), data.attributes.int);
   utils.updateText(cardElement.querySelector('[data-attr="pre"]'), data.attributes.pre);
 
-  const powersEl = cardElement.querySelector('[data-type="habilidades"]');
+  // --- Atualizações do Accordion (Não mudam) ---
+  // (Atualiza o *inner* do wrapper)
+  const powersEl = cardElement.querySelector('[data-type="habilidades"] .accordion-inner');
   if (powersEl) powersEl.innerHTML = data.powers.length > 0 ? data.powers.map(renderListItem).join('') : placeholder;
 
-  const ritualsEl = cardElement.querySelector('[data-type="rituais"]');
+  const ritualsEl = cardElement.querySelector('[data-type="rituais"] .accordion-inner');
   if (ritualsEl) ritualsEl.innerHTML = data.rituals.length > 0 ? data.rituals.map(renderListItem).join('') : placeholder;
 
-  const inventoryEl = cardElement.querySelector('[data-type="inventario"]');
+  const inventoryEl = cardElement.querySelector('[data-type="inventario"] .accordion-inner');
   if (inventoryEl) inventoryEl.innerHTML = data.inventory.length > 0 ? data.inventory.map(renderInventoryItem).join('') : placeholder;
 }
 
-/**
- * Cria um novo elemento de card (sem preenchê-lo).
- * @param {string} link - O link (URL) do personagem.
- * @returns {HTMLElement} O elemento <div> do card.
- */
+// ... (O restante das funções createNewCardElement, renderErrorCard, etc. não mudam) ...
 export function createNewCardElement(link) {
   const cardElement = document.createElement('div');
   cardElement.className = 'character-card';
@@ -135,42 +155,24 @@ export function createNewCardElement(link) {
   gridElement.appendChild(cardElement);
   return cardElement;
 }
-
-/**
- * Renderiza um card de erro.
- * @param {HTMLElement} cardElement - O elemento <div> do card.
- * @param {object} data - O objeto de erro.
- */
 export function renderErrorCard(cardElement, data) {
   cardElement.innerHTML = `<button class="card-delete-btn" data-link="${data.originalUrl}" title="Remover Personagem">X</button><h2>Erro ao carregar</h2><p>${data.error}</p><small>${data.originalUrl}</small>`;
   cardElement.style.borderColor = '#dc3545';
 }
-
-/**
- * Mostra a mensagem de placeholder (Ex: "Adicione links...").
- */
 export function showPlaceholder() {
   gridElement.innerHTML = '<div class="card-placeholder">Adicione links de portrait para começar...</div>';
 }
-
-/**
- * Remove a mensagem de placeholder.
- */
 export function removePlaceholder() {
   const placeholder = gridElement.querySelector('.card-placeholder');
   if (placeholder) placeholder.remove();
 }
-
-/**
- * Remove um card específico do grid.
- * @param {string} link - O link (URL) do card a ser removido.
- */
 export function removeCard(link) {
   const cardToRemove = gridElement.querySelector(`[data-link="${link}"]`);
   if (cardToRemove) {
     cardToRemove.remove();
   }
 }
+
 
 /**
  * Inicializa o grid, registrando os listeners de clique internos.
@@ -180,11 +182,13 @@ export function initializeGrid(onDelete) {
   gridElement = document.getElementById('dashboard-grid');
   onDeleteCallback = onDelete;
 
+  // --- MODIFICADO ---
+  // Adiciona o listener para o accordion aninhado
   gridElement.addEventListener('click', (e) => {
     // 1. Lógica de Deletar
     const deleteButton = e.target.closest('.card-delete-btn');
     if (deleteButton) {
-      e.stopPropagation(); // Impede o card de expandir
+      e.stopPropagation(); 
       const linkToDelete = deleteButton.dataset.link;
       if (onDeleteCallback) {
         onDeleteCallback(linkToDelete);
@@ -192,7 +196,15 @@ export function initializeGrid(onDelete) {
       return;
     }
 
-    // 2. Lógica do Accordion Interno
+    // 2. NOVA LÓGICA: Accordion ANINHADO (Item individual)
+    const innerAccordionHeader = e.target.closest('.inner-accordion-header');
+    if (innerAccordionHeader) {
+      e.stopPropagation(); // Impede o accordion PAI de fechar
+      innerAccordionHeader.classList.toggle('active');
+      return;
+    }
+
+    // 3. Lógica do Accordion PAI (Habilidades, Rituais, Inventário)
     const accordionHeader = e.target.closest('.accordion-header');
     if (accordionHeader) {
       e.stopPropagation(); // Impede o card de fechar
@@ -200,13 +212,10 @@ export function initializeGrid(onDelete) {
       return;
     }
 
-    // 3. Lógica de Expandir o Card
-    // Ignora cliques na "alça" de arrastar
+    // 4. Lógica de Expandir o Card (Restante do card)
     if (e.target.closest('.card-drag-handle')) {
       return;
     }
-
-    // Se clicou no card (e não num botão), expande/recolhe
     const card = e.target.closest('.character-card');
     if (card) {
       card.classList.toggle('card-expanded');
