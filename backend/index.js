@@ -25,14 +25,14 @@ initializeWebSocket(wss);
 
 // 2. Rota de API (obsoleta, mantida por segurança)
 app.get('/scrape-batch', (req, res) => {
-    res.status(404).json({ error: 'Endpoint obsoleto. Use WebSockets.' });
+  res.status(404).json({ error: 'Endpoint obsoleto. Use WebSockets.' });
 });
 
 // 3. Inicia o servidor HTTP
 server.listen(PORT, () => {
-    console.log(`Servidor (Express + WebSocket) rodando na porta ${PORT}`);
-    
-    // 4. Inicia o loop de fundo que busca dados
-    // (Passamos a instância do 'wss' para ele poder fazer broadcasts)
-    startBackgroundLoop(wss); 
+  console.log(`Servidor (Express + WebSocket) rodando na porta ${PORT}`);
+  
+  // 4. Inicia o loop de fundo que busca dados
+  // (Passamos a instância do 'wss' para ele poder fazer broadcasts)
+  startBackgroundLoop(wss); 
 });

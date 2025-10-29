@@ -4,30 +4,30 @@ const axios = require('axios');
 
 // Helper genérico para extrair arrays do JSON do Firestore
 const parseArray = (field, mapper) => {
-    if (!field || !field.arrayValue || !field.arrayValue.values) {
-        return [];
-    }
-    return field.arrayValue.values.map(mapper);
+  if (!field || !field.arrayValue || !field.arrayValue.values) {
+    return [];
+  }
+  return field.arrayValue.values.map(mapper);
 };
 
 // Mapper para Habilidades (Powers)
 const mapPower = (item) => ({
-    name: item.mapValue.fields.name.stringValue,
-    // Remove tags HTML da descrição
-    description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, '') 
+  name: item.mapValue.fields.name.stringValue,
+  // Remove tags HTML da descrição
+  description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, '') 
 });
 
 // Mapper para Itens do Inventário
 const mapInventoryItem = (item) => ({
-    name: item.mapValue.fields.name.stringValue,
-    description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, ''),
-    slots: item.mapValue.fields.slots.stringValue
+  name: item.mapValue.fields.name.stringValue,
+  description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, ''),
+  slots: item.mapValue.fields.slots.stringValue
 });
 
 // Mapper para Rituais
 const mapRitual = (item) => ({
-    name: item.mapValue.fields.name.stringValue,
-    description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, '')
+  name: item.mapValue.fields.name.stringValue,
+  description: item.mapValue.fields.description.stringValue.replace(/<[^>]*>?/gm, '')
 });
 
 
@@ -37,43 +37,43 @@ const mapRitual = (item) => ({
  * @returns {Promise<Object|null>} Objeto com dados do personagem ou null se falhar.
  */
 async function fetchFromGoogle(characterId) {
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/cris-ordem-paranormal/databases/(default)/documents/characters/${characterId}`;
-    try {
-        const { data } = await axios.get(firestoreUrl);
-        const fields = data.fields;
-        
-        const characterData = {
-            name: fields.name.stringValue,
-            hp: `${fields.currentPv.integerValue}/${fields.maxPv.integerValue}`,
-            sanity: `${fields.currentSan.integerValue}/${fields.maxSan.integerValue}`,
-            effort: `${fields.currentPe.integerValue}/${fields.maxPe.integerValue}`,
-            picture: fields.sheetPictureURL.stringValue,
-            isDying: fields.deathMode.booleanValue,
-            isCrazy: fields.madnessMode.booleanValue,
-            evade: fields.evade.integerValue.toString(),
-            block: fields.block.integerValue.toString(),
-            movement: fields.movement.integerValue.toString(),
-            nex: fields.nex.stringValue,
-            className: fields.className.stringValue,
-            load: `${fields.currentLoad.integerValue}/${fields.maxLoad.integerValue}`,
+  const firestoreUrl = `https://firestore.googleapis.com/v1/projects/cris-ordem-paranormal/databases/(default)/documents/characters/${characterId}`;
+  try {
+    const { data } = await axios.get(firestoreUrl);
+    const fields = data.fields;
+    
+    const characterData = {
+      name: fields.name.stringValue,
+      hp: `${fields.currentPv.integerValue}/${fields.maxPv.integerValue}`,
+      sanity: `${fields.currentSan.integerValue}/${fields.maxSan.integerValue}`,
+      effort: `${fields.currentPe.integerValue}/${fields.maxPe.integerValue}`,
+      picture: fields.sheetPictureURL.stringValue,
+      isDying: fields.deathMode.booleanValue,
+      isCrazy: fields.madnessMode.booleanValue,
+      evade: fields.evade.integerValue.toString(),
+      block: fields.block.integerValue.toString(),
+      movement: fields.movement.integerValue.toString(),
+      nex: fields.nex.stringValue,
+      className: fields.className.stringValue,
+      load: `${fields.currentLoad.integerValue}/${fields.maxLoad.integerValue}`,
 
-            // Dados para as novas seções
-            attributes: {
-                str: fields.attributes.mapValue.fields.str.integerValue,
-                dex: fields.attributes.mapValue.fields.dex.integerValue,
-                con: fields.attributes.mapValue.fields.con.integerValue,
-                int: fields.attributes.mapValue.fields.int.integerValue,
-                pre: fields.attributes.mapValue.fields.pre.integerValue,
-            },
-            powers: parseArray(fields.powers, mapPower),
-            inventory: parseArray(fields.inventory, mapInventoryItem),
-            rituals: parseArray(fields.rituals, mapRitual)
-        };
-        return { data: characterData, lastFetchTime: Date.now() };
-    } catch (error) {
-        console.error(`[Fetch] Falha ao buscar ${characterId}: ${error.message}`);
-        return null;
-    }
+      // Dados para as novas seções
+      attributes: {
+        str: fields.attributes.mapValue.fields.str.integerValue,
+        dex: fields.attributes.mapValue.fields.dex.integerValue,
+        con: fields.attributes.mapValue.fields.con.integerValue,
+        int: fields.attributes.mapValue.fields.int.integerValue,
+        pre: fields.attributes.mapValue.fields.pre.integerValue,
+      },
+      powers: parseArray(fields.powers, mapPower),
+      inventory: parseArray(fields.inventory, mapInventoryItem),
+      rituals: parseArray(fields.rituals, mapRitual)
+    };
+    return { data: characterData, lastFetchTime: Date.now() };
+  } catch (error) {
+    console.error(`[Fetch] Falha ao buscar ${characterId}: ${error.message}`);
+    return null;
+  }
 }
 
 module.exports = { fetchFromGoogle };
