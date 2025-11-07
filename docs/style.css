@@ -9,8 +9,10 @@
 @import url("css/header.css");
 @import url("css/grid.css");
 
-/* --- MODIFICADO --- */
 /* Importações do card modularizado */
 @import url("css/card/card-base.css");
 @import url("css/card/card-accordion.css");
 @import url("css/card/card-responsive.css");
+
+/* Importação dos dados */
+@import url("css/dice-roller.css");

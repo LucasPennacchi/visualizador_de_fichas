@@ -3,15 +3,13 @@ import * as api from './api.js';
 import * as store from './store.js';
 import * as controls from './ui/controls.js';
 import * as grid from './ui/grid.js';
-import * as card from './ui/card.js';
+import * as card from './ui/card.js'; 
+import * as diceRoller from './ui/dice-roller/dice-roller.js';
 
 // --- Elemento Principal ---
 const gridElement = document.getElementById('dashboard-grid');
 
-/**
- * Lógica principal para processar os dados recebidos (do cache ou do WebSocket).
- * @param {object[]} charactersData - Array de dados de personagens.
- */
+// ... (processBatchData, loadDataFromCache, handleDataUpdate, etc. não mudam) ...
 function processBatchData(charactersData) {
   if (!charactersData || charactersData.length === 0) return;
   
@@ -29,14 +27,13 @@ function processBatchData(charactersData) {
     }
     
     if (data.error) {
-      grid.renderErrorCard(cardElement, data); // Esta função ficou no grid.js
+      grid.renderErrorCard(cardElement, data); 
     } else {
-      
       if (!cardElement.hasAttribute('data-rendered')) {
-        card.renderNewCardHTML(cardElement, data); // Chama a função do 'card.js'
+        card.renderNewCardHTML(cardElement, data); 
         cardElement.setAttribute('data-rendered', 'true');
       }
-      card.updateExistingCard(cardElement, data); // Chama a função do 'card.js'
+      card.updateExistingCard(cardElement, data); 
     }
   }
   
@@ -45,7 +42,6 @@ function processBatchData(charactersData) {
     if (card) gridElement.appendChild(card); 
   });
 }
-
 function loadDataFromCache() {
   const links = store.getLinks();
   if (links.length === 0) {
@@ -87,9 +83,16 @@ function handleDeleteLink(linkToDelete) {
     grid.showPlaceholder();
   }
 }
+
+/**
+ * INICIALIZAÇÃO DA APLICAÇÃO
+ */
 function init() {
   controls.initializeControls(handleLinksAdded);
   grid.initializeGrid(handleDeleteLink);
+  
+  // Ainda em testes
+  diceRoller.initializeDiceRoller();
 
   new Sortable(gridElement, {
     handle: '.card-drag-handle', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
@@ -105,4 +108,7 @@ function init() {
   loadDataFromCache();
   api.connect(handleDataUpdate, handleConnectionOpen);
 }
-init();
+
+// Inicia tudo
+//init();
+window.addEventListener('load', init);

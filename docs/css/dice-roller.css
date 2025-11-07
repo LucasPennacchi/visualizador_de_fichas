@@ -1,0 +1,192 @@
+/* frontend/css/dice-roller.css */
+
+#dice-roller-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: all 0.2s ease-out;
+  overflow: hidden; /* Garante que o conteúdo não vaze */
+}
+
+/* Cabeçalho da Widget */
+.dice-roller-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f7f7f7;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.dice-roller-header span {
+  font-weight: bold;
+  color: #333;
+}
+#dice-roller-toggle {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 1.2em;
+  line-height: 1;
+  background-color: #e9ecef;
+  color: #555;
+  border-radius: 50%;
+}
+#dice-roller-toggle:hover {
+  background-color: #ddd;
+}
+
+/* Lógica de Colapsar */
+#dice-roller-widget.collapsed {
+  height: auto;
+  width: auto;
+  background: transparent;
+  box-shadow: none;
+}
+#dice-roller-widget.collapsed .dice-roller-content {
+  display: none;
+}
+/* Muda o botão quando colapsado */
+#dice-roller-widget:not(.collapsed) #dice-roller-toggle::before {
+  content: '−';
+}
+#dice-roller-widget.collapsed #dice-roller-toggle {
+  /* No modo colapsado, o header some e só o botão fica */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  width: 40px;
+  height: 40px;
+  font-size: 1.5em;
+}
+#dice-roller-widget.collapsed .dice-roller-header {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+#dice-roller-widget.collapsed .dice-roller-header span {
+  display: none;
+}
+#dice-roller-widget.collapsed #dice-roller-toggle::before {
+  content: '🎲'; /* Ícone de dado */
+}
+
+/* Conteúdo da Widget */
+.dice-roller-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Display da Fórmula */
+#dice-formula-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box; /* Garante que o padding não quebre o layout */
+  font-size: 0.9em;
+}
+
+/* Fieldsets (Grupos de controle) */
+.dice-fieldset {
+  border: 1px solid #eee;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.dice-fieldset legend {
+  font-size: 0.8em;
+  font-weight: bold;
+  color: #777;
+  padding: 0 5px;
+  margin-left: 5px;
+}
+.dice-fieldset input[type="number"] {
+  width: 50px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Grupo de botões de dado */
+.dice-button-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  flex-grow: 1;
+}
+.dice-button-group button {
+  padding: 6px;
+  font-weight: bold;
+  background-color: #f0f2f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+.dice-button-group button:hover {
+  background-color: #e0e2e5;
+}
+
+/* Botão de adicionar modificador */
+#dice-pool-add-mod {
+  flex-grow: 1;
+  padding: 6px;
+  background-color: #f0f2f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+/* Grupo de Radio (Modo) */
+#dice-roll-mode-group {
+  flex-direction: column;
+  align-items: flex-start;
+}
+#dice-roll-mode-group label {
+  font-size: 0.9em;
+  cursor: pointer;
+}
+#dice-roll-mode-group input {
+  margin-right: 5px;
+}
+
+/* Botões de Ação (Rolar, Limpar) */
+.dice-actions {
+  display: flex;
+  gap: 10px;
+}
+#dice-roll-btn {
+  flex-grow: 3;
+  background-color: #007bff;
+}
+#dice-clear-btn {
+  flex-grow: 1;
+  background-color: #6c757d;
+}
+
+/* Display de Resultado */
+#dice-result-display {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  border: 1px solid #eee;
+  min-height: 50px;
+  text-align: center;
+}
+#dice-result-display h2 {
+  margin: 0;
+  color: #007bff;
+}
+#dice-result-display span {
+  font-size: 0.8em;
+  color: #666;
+  word-break: break-all;
+}
