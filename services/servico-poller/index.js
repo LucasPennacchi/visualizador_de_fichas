@@ -2,137 +2,104 @@
 const Redis = require('ioredis');
 const { fetchFromGoogle } = require('./googleFetcher');
 
-const POLLING_INTERVAL_MS = 5000; // 5 segundos
+// --- Constantes ---
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = process.env.REDIS_PORT || 6379;
+const QUEUE_NAME = 'fila:trabalho:revalidar'; // A fila que vamos escutar
 
 // --- Configuração dos Clientes Redis ---
-const redisHost = process.env.REDIS_HOST || 'localhost';
-const redisPort = process.env.REDIS_PORT || 6379;
-
 // Cliente para comandos GET/SET
-const redisClient = new Redis(redisPort, redisHost);
+const redisClient = new Redis(REDIS_PORT, REDIS_HOST);
 // Cliente para PUBLISH
-const publisherClient = new Redis(redisPort, redisHost);
-// NOVO: Cliente para SUBSCRIBE (requisições de busca)
-const subscriberClient = new Redis(redisPort, redisHost);
+const publisherClient = new Redis(REDIS_PORT, REDIS_HOST);
+// Cliente de bloqueio (Blocking Client) para 'BRPOP'
+const workerClient = new Redis(REDIS_PORT, REDIS_HOST);
 
-console.log(`[Poller] Conectando ao Redis em ${redisHost}:${redisPort}`);
-
+console.log(`[Worker] Conectando ao Redis em ${REDIS_HOST}:${REDIS_PORT}`);
 
 /**
- * NOVA FUNÇÃO REUTILIZÁVEL:
+ * Função central de processamento.
  * Busca, compara e publica um ÚNICO ID.
- * Usada tanto pelo loop quanto pelas requisições imediatas.
- * @param {string} charId - O ID da ficha
- * @param {string} originalUrl - O URL completo original
- * @param {boolean} forcePublish - Se deve publicar mesmo se não houver mudança (para o 'cold start')
  */
 async function processCharacter(charId, originalUrl, forcePublish = false) {
-    console.log(`[Poller] Processando ID: ${charId}`);
+    console.log(`[Worker] Processando ID: ${charId}`);
     const cacheKey = `ficha:${charId}`;
     const channel = `updates:${charId}`;
     
+    // 1. Busca os dados da API externa
     const newDataResult = await fetchFromGoogle(charId);
     if (!newDataResult) {
-        console.log(`[Poller] Falha ao buscar ${charId}. Pulando.`);
+        console.log(`[Worker] Falha ao buscar ${charId}. Pulando.`);
         return;
     }
 
+    // 2. Busca os dados antigos do cache
     const oldDataJson = await redisClient.get(cacheKey);
     const newDataJson = JSON.stringify(newDataResult.data);
     
+    // 3. Compara
     const hasChanged = newDataJson !== oldDataJson;
 
-    // Publica se mudou OU se foi forçado (para 'cold start')
+    // 4. Publica se mudou OU se foi 'forcePublish' (de um cache miss do gateway)
     if (hasChanged || forcePublish) {
         if (hasChanged) {
-            console.log(`[Poller] Mudança detectada em: ${charId}`);
+            console.log(`[Worker] Mudança detectada em: ${charId}`);
         } else if (forcePublish) {
-            console.log(`[Poller] Busca forçada (cold start) para: ${charId}`);
+            console.log(`[Worker] Busca forçada (cold start) para: ${charId}`);
         }
         
-        // Prepara o payload final para o frontend
+        // 5. Prepara o payload final para o frontend (com URL)
         const payload = {
             ...newDataResult.data,
-            originalUrl: originalUrl // Usa o URL que recebemos
+            originalUrl: originalUrl
         };
         const payloadJson = JSON.stringify(payload);
 
-        // Atualiza o Cache (SET) com os dados PUROS
+        // 6. Atualiza o Cache (SET) com os dados PUROS
         await redisClient.set(cacheKey, newDataJson);
         
-        // Publica a mudança (PUBLISH) com o PAYLOAD COMPLETO
+        // 7. Publica a mudança (PUBLISH) com o PAYLOAD COMPLETO
         await publisherClient.publish(channel, payloadJson);
         
     } else {
-        console.log(`[Poller] Sem mudanças em: ${charId}`);
+        console.log(`[Worker] Sem mudanças em: ${charId}`);
     }
 }
 
 /**
- * A lógica principal do loop de polling (agora usa 'processCharacter')
+ * Loop infinito do Worker.
+ * Espera por trabalhos na fila e os processa.
  */
-async function runUpdateLoop() {
-    console.log("[Poller] Verificando canais ativos...");
+async function startWorker() {
+    console.log(`[Worker] Pronto. Esperando por trabalhos na fila '${QUEUE_NAME}'...`);
     
-    // Pergunta ao Redis: "Quais canais 'updates:*' estão sendo escutados?"
-    const channels = await redisClient.pubsub('CHANNELS', 'updates:*');
-    
-    if (channels.length === 0) {
-        console.log("[Poller] Nenhum canal ativo. Pulando o loop.");
-        return;
-    }
-    
-    console.log(`[Poller] Monitorando ${channels.length} fichas ativas...`);
-    
-    for (const channel of channels) {
-        const charId = channel.split(':')[1];
-        if (!charId) continue;
-        
-        const linkKey = `link:${charId}`;
-        // Busca o URL original (que o gateway salvou)
-        const originalUrl = await redisClient.get(linkKey);
-        
-        if (!originalUrl) {
-            console.error(`[Poller] Loop: Não foi possível encontrar o URL original para o ID: ${charId}`);
-            continue;
-        }
-        
-        // Chama a função centralizada (sem forçar)
-        await processCharacter(charId, originalUrl, false);
-    }
-}
-
-/**
- * NOVO HANDLER: Lida com requisições de busca imediatas do gateway
- */
-subscriberClient.on('message', async (channel, message) => {
-    if (channel === 'request:fetch') {
-        console.log(`[Poller] Recebida solicitação de busca imediata.`);
+    while (true) {
         try {
-            const { charId, originalUrl } = JSON.parse(message);
+            // 1. Espera (bloqueia) por um job. '0' = esperar para sempre.
+            // BRPOP retorna um array: [nomeDaFila, job]
+            const result = await workerClient.brpop(QUEUE_NAME, 0);
+            const jobPayload = result[1]; // Pega o job
+            
+            console.log(`[Worker] Job recebido.`);
+            
+            // 2. Processa o job
+            const { charId, originalUrl, force } = JSON.parse(jobPayload);
+            
             if (charId && originalUrl) {
-                // Chama a função centralizada, forçando o 'publish'
-                // (Isso preenche o cache e envia os dados ao cliente)
-                await processCharacter(charId, originalUrl, true);
+                // 3. Chama a função de processamento
+                // 'force' será true para 'cold starts' e false para 'loops'
+                await processCharacter(charId, originalUrl, force || false);
+            } else {
+                console.warn("[Worker] Job inválido recebido:", jobPayload);
             }
-        } catch (e) {
-            console.error("[Poller] Erro ao processar 'request:fetch'", e.message);
+
+        } catch (err) {
+            console.error("[Worker] Erro no loop de trabalho:", err);
+            // Espera um segundo antes de tentar novamente para evitar spam de erros
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
-});
-
-// Inicia ambos os serviços do poller
-function startServices() {
-    // 1. Inicia o loop de polling
-    console.log(`[Poller] Iniciando loop de polling a cada ${POLLING_INTERVAL_MS}ms`);
-    runUpdateLoop().catch(console.error);
-    setInterval(() => {
-        runUpdateLoop().catch(console.error);
-    }, POLLING_INTERVAL_MS);
-    
-    // 2. Se inscreve no canal de requisições
-    subscriberClient.subscribe('request:fetch');
-    console.log("[Poller] Inscrito no canal 'request:fetch'.");
 }
 
-startServices();
+// Inicia o worker
+startWorker();

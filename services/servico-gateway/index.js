@@ -1,51 +1,56 @@
 // services/servico-gateway/index.js
+
+// --- Dependências ---
 const http = require('http');
 const express = require('express');
 const { WebSocketServer } = require('ws');
 const Redis = require('ioredis');
 const { getCharacterIdFromUrl } = require('./utils');
 
+// --- Constantes ---
 const PORT = 3000;
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = process.env.REDIS_PORT || 6379;
+const QUEUE_NAME = 'fila:trabalho:revalidar'; // Fila de jobs para o worker
 
-// --- Configuração do Express ---
+// --- Configuração dos Clientes Redis ---
+// Cliente 1: Para comandos normais (GET, SET, LPUSH)
+const redisClient = new Redis(REDIS_PORT, REDIS_HOST);
+// Cliente 2: Cliente dedicado para Assinaturas (SUBSCRIBE)
+const subscriberClient = new Redis(REDIS_PORT, REDIS_HOST);
+
+// --- Configuração do Servidor Web e WebSocket ---
 const app = express();
 app.use(require('cors')());
 app.use(require('compression')());
 
-// --- Configuração dos Clientes Redis ---
-const redisHost = process.env.REDIS_HOST || 'localhost';
-const redisPort = process.env.REDIS_PORT || 6379;
-
-// Cliente para comandos GET/SET e PUBLISH
-const redisClient = new Redis(redisPort, redisHost);
-// Cliente separado *apenas* para SUBSCRIBES (prática recomendada)
-const subscriberClient = new Redis(redisPort, redisHost);
-
-// --- Configuração do Servidor WebSocket ---
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-// --- Estado do Gateway ---
+// --- Estado Interno do Gateway ---
+// Map<ws (cliente), Set<string (ID da Ficha)>>
 const clientSubscriptions = new Map();
+// Set<string (Canal do Redis)> - Para evitar inscrições duplicadas no Redis
 const activeRedisChannels = new Set();
 
-// --- Lógica Principal ---
 
-/**
- * Lida com mensagens de atualização recebidas do Redis Pub/Sub
- * (Esta função está correta e não muda)
- */
+// --- Lógica do Redis Pub/Sub (Recebimento de Atualizações) ---
+
+// Escuta por mensagens nos canais que assinamos
 subscriberClient.on('message', (channel, message) => {
     console.log(`[Redis Pub/Sub] Mensagem recebida no canal: ${channel}`);
     
+    // Extrai o ID do canal (ex: "updates:ID_DA_FICHA")
     const characterId = channel.split(':')[1];
     if (!characterId) return;
 
+    // Prepara a mensagem para o frontend (que espera um array)
     const wsMessage = JSON.stringify({
         type: 'DATA_UPDATE',
         payload: [JSON.parse(message)] 
     });
 
+    // Envia a atualização para todos os clientes que assinaram este ID
     clientSubscriptions.forEach((subscribedIds, ws) => {
         if (subscribedIds.has(characterId) && ws.readyState === ws.OPEN) {
             ws.send(wsMessage);
@@ -53,14 +58,13 @@ subscriberClient.on('message', (channel, message) => {
     });
 });
 
-/**
- * Lida com novas conexões WebSocket
- */
+// --- Lógica do WebSocket (Gerenciamento de Clientes) ---
+
 wss.on('connection', ws => {
     console.log('[Gateway] Cliente conectado.');
-    clientSubscriptions.set(ws, new Set());
+    clientSubscriptions.set(ws, new Set()); // Registra o novo cliente
 
-    // O que fazer quando este cliente envia uma mensagem
+    // Lida com mensagens recebidas do cliente
     ws.on('message', async (messageBuffer) => {
         let message;
         try {
@@ -70,11 +74,12 @@ wss.on('connection', ws => {
             return;
         }
 
+        // Processa a inscrição do cliente em uma lista de links
         if (message.type === 'SUBSCRIBE_LINKS' && message.payload) {
             console.log(`[Gateway] Cliente se inscreveu em ${message.payload.length} links.`);
             
             const newIds = new Set();
-            const initialDataPayload = [];
+            const initialDataPayload = []; // Dados para enviar imediatamente (do cache)
 
             for (const link of message.payload) {
                 const charId = getCharacterIdFromUrl(link);
@@ -85,30 +90,30 @@ wss.on('connection', ws => {
                 const cacheKey = `ficha:${charId}`;
                 const linkKey = `link:${charId}`;
                 
-                // 1. Armazena o mapeamento "ID -> Link" (como antes)
+                // 1. Salva o mapeamento ID -> URL para o Poller/Worker usar
                 await redisClient.set(linkKey, link);
 
-                // 2. Tenta buscar os dados PUROS do cache
+                // 2. Tenta buscar os dados do cache
                 const cachedDataJson = await redisClient.get(cacheKey);
                 
                 if (cachedDataJson) {
                     // SUCESSO (Cache Hit): A ficha já está no cache
                     console.log(`[Gateway] Cache hit para ${charId}.`);
                     const data = JSON.parse(cachedDataJson);
-                    const payload = {
-                        ...data,
-                        originalUrl: link
-                    };
+                    const payload = { ...data, originalUrl: link };
                     initialDataPayload.push(payload);
                 } else {
-                    // FALHA (Cache Miss): A ficha não está no cache
-                    console.log(`[Gateway] Cache miss para ${charId}. Solicitando busca...`);
-                    // Pede ao(s) poller(s) para buscarem esta ficha AGORA.
-                    const requestPayload = JSON.stringify({ charId: charId, originalUrl: link });
-                    redisClient.publish('request:fetch', requestPayload);
+                    // FALHA (Cache Miss): Solicita a busca ao worker
+                    console.log(`[Gateway] Cache miss para ${charId}. Enviando job para a fila...`);
+                    const jobPayload = JSON.stringify({ 
+                        charId: charId, 
+                        originalUrl: link, 
+                        force: true // Força o worker a publicar o resultado
+                    });
+                    redisClient.lpush(QUEUE_NAME, jobPayload);
                 }
 
-                // 4. Se inscreve no canal de updates (como antes)
+                // 3. Se inscreve no canal de updates (para futuras mudanças)
                 const channel = `updates:${charId}`;
                 if (!activeRedisChannels.has(channel)) {
                     console.log(`[Redis Pub/Sub] Inscrevendo no novo canal: ${channel}`);
@@ -116,8 +121,8 @@ wss.on('connection', ws => {
                     activeRedisChannels.add(channel);
                 }
             }
-
-            // Atualiza o que este cliente está assistindo
+            
+            // Atualiza a lista de IDs deste cliente
             clientSubscriptions.set(ws, newIds);
             
             // Envia a carga inicial (o que foi encontrado no cache)
@@ -130,9 +135,12 @@ wss.on('connection', ws => {
         }
     });
 
+    // Lida com desconexões
     ws.on('close', () => {
         console.log('[Gateway] Cliente desconectado.');
         clientSubscriptions.delete(ws);
+        // Nota: Uma otimização futura seria desinscrever-se de canais do Redis
+        // que não estão mais sendo assistidos por nenhum cliente.
     });
 
     ws.on('error', (err) => {
@@ -143,5 +151,5 @@ wss.on('connection', ws => {
 // --- Inicia o Servidor ---
 server.listen(PORT, () => {
     console.log(`[Gateway] Servidor (Express + WebSocket) rodando na porta ${PORT}`);
-    console.log(`[Gateway] Conectando ao Redis em ${redisHost}:${redisPort}`);
+    console.log(`[Gateway] Conectando ao Redis em ${REDIS_HOST}:${REDIS_PORT}`);
 });

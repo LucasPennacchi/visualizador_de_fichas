@@ -1,6 +1,3 @@
-# docker-compose.yml
-version: '3.8'
-
 services:
   redis:
     image: redis:7-alpine
@@ -16,7 +13,6 @@ services:
     container_name: gm-gateway
     build:
       context: ./services/servico-gateway
-      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -28,13 +24,10 @@ services:
       - gm_network
     restart: unless-stopped
 
-  # --- NOVA ADIÇÃO: O SERVIÇO POLLER ---
   poller:
-    container_name: gm-poller
+    # container_name: gm-poller ERRO DE NOMEAÇÃO PARA O PARALELISMO
     build:
       context: ./services/servico-poller
-      dockerfile: Dockerfile
-    # O poller não precisa expor portas, ele é um worker de background
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -43,7 +36,19 @@ services:
     networks:
       - gm_network
     restart: unless-stopped
-  # --- FIM DA ADIÇÃO ---
+
+  scheduler:
+    container_name: gm-scheduler
+    build:
+      context: ./services/servico-scheduler
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - gm_network
+    restart: unless-stopped
 
 volumes:
   redis_data:
