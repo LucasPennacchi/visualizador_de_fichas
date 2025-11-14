@@ -92,8 +92,8 @@ function init() {
   grid.initializeGrid(handleDeleteLink);
   
   // Ainda em testes
-  diceRoller.initializeDiceRoller();
-
+  // diceRoller.initializeDiceRoller();
+  
   new Sortable(gridElement, {
     handle: '.card-drag-handle', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
     onEnd: function (evt) {

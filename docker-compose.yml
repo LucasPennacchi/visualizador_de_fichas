@@ -1,0 +1,53 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: gm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gm_network
+
+  gateway:
+    container_name: gm-gateway
+    build:
+      context: ./services/servico-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - gm_network
+    restart: unless-stopped
+
+  # --- NOVA ADIÇÃO: O SERVIÇO POLLER ---
+  poller:
+    container_name: gm-poller
+    build:
+      context: ./services/servico-poller
+      dockerfile: Dockerfile
+    # O poller não precisa expor portas, ele é um worker de background
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - gm_network
+    restart: unless-stopped
+  # --- FIM DA ADIÇÃO ---
+
+volumes:
+  redis_data:
+
+networks:
+  gm_network:
+    driver: bridge

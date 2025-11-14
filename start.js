@@ -66,7 +66,7 @@ async function start() {
     await clipboardy.write(finalUrl);
 
     console.log("\n===============================================================");
-    console.log("✅ SEU LINK DO OBS ESTA PRONTO E FOI COPIADO!");
+    console.log("SEU LINK DO OBS ESTA PRONTO E FOI COPIADO!");
     console.log("\n" + finalUrl + "\n");
     console.log("===============================================================\n");
     console.log("O backend e o ngrok estão rodando. Pressione Ctrl+C para parar TUDO.");
