@@ -8,17 +8,73 @@ const POLLING_INTERVAL_MS = 5000; // 5 segundos
 const redisHost = process.env.REDIS_HOST || 'localhost';
 const redisPort = process.env.REDIS_PORT || 6379;
 
+// Cliente para comandos GET/SET
 const redisClient = new Redis(redisPort, redisHost);
+// Cliente para PUBLISH
 const publisherClient = new Redis(redisPort, redisHost);
+// NOVO: Cliente para SUBSCRIBE (requisições de busca)
+const subscriberClient = new Redis(redisPort, redisHost);
 
 console.log(`[Poller] Conectando ao Redis em ${redisHost}:${redisPort}`);
 
+
 /**
- * A lógica principal do loop de polling
+ * NOVA FUNÇÃO REUTILIZÁVEL:
+ * Busca, compara e publica um ÚNICO ID.
+ * Usada tanto pelo loop quanto pelas requisições imediatas.
+ * @param {string} charId - O ID da ficha
+ * @param {string} originalUrl - O URL completo original
+ * @param {boolean} forcePublish - Se deve publicar mesmo se não houver mudança (para o 'cold start')
+ */
+async function processCharacter(charId, originalUrl, forcePublish = false) {
+    console.log(`[Poller] Processando ID: ${charId}`);
+    const cacheKey = `ficha:${charId}`;
+    const channel = `updates:${charId}`;
+    
+    const newDataResult = await fetchFromGoogle(charId);
+    if (!newDataResult) {
+        console.log(`[Poller] Falha ao buscar ${charId}. Pulando.`);
+        return;
+    }
+
+    const oldDataJson = await redisClient.get(cacheKey);
+    const newDataJson = JSON.stringify(newDataResult.data);
+    
+    const hasChanged = newDataJson !== oldDataJson;
+
+    // Publica se mudou OU se foi forçado (para 'cold start')
+    if (hasChanged || forcePublish) {
+        if (hasChanged) {
+            console.log(`[Poller] Mudança detectada em: ${charId}`);
+        } else if (forcePublish) {
+            console.log(`[Poller] Busca forçada (cold start) para: ${charId}`);
+        }
+        
+        // Prepara o payload final para o frontend
+        const payload = {
+            ...newDataResult.data,
+            originalUrl: originalUrl // Usa o URL que recebemos
+        };
+        const payloadJson = JSON.stringify(payload);
+
+        // Atualiza o Cache (SET) com os dados PUROS
+        await redisClient.set(cacheKey, newDataJson);
+        
+        // Publica a mudança (PUBLISH) com o PAYLOAD COMPLETO
+        await publisherClient.publish(channel, payloadJson);
+        
+    } else {
+        console.log(`[Poller] Sem mudanças em: ${charId}`);
+    }
+}
+
+/**
+ * A lógica principal do loop de polling (agora usa 'processCharacter')
  */
 async function runUpdateLoop() {
     console.log("[Poller] Verificando canais ativos...");
     
+    // Pergunta ao Redis: "Quais canais 'updates:*' estão sendo escutados?"
     const channels = await redisClient.pubsub('CHANNELS', 'updates:*');
     
     if (channels.length === 0) {
@@ -32,66 +88,51 @@ async function runUpdateLoop() {
         const charId = channel.split(':')[1];
         if (!charId) continue;
         
-        const cacheKey = `ficha:${charId}`;
         const linkKey = `link:${charId}`;
+        // Busca o URL original (que o gateway salvou)
+        const originalUrl = await redisClient.get(linkKey);
         
-        const newDataResult = await fetchFromGoogle(charId);
-        if (!newDataResult) {
-            console.log(`[Poller] Falha ao buscar ${charId}. Pulando.`);
+        if (!originalUrl) {
+            console.error(`[Poller] Loop: Não foi possível encontrar o URL original para o ID: ${charId}`);
             continue;
         }
-
-        // 4. Busca os dados ANTIGOS (JSON string) do cache
-        // (No ciclo 1, isso será 'null')
-        const oldDataJson = await redisClient.get(cacheKey);
         
-        // 5. Prepara os dados NOVOS (JSON string)
-        const newDataJson = JSON.stringify(newDataResult.data);
-
-        // 6. Compara as strings de JSON diretamente. É mais rápido e correto.
-        // "{"hp":"10"}" !== "{"hp":"10"}" -> false
-        // "{"hp":"9"}" !== "{"hp":"10"}"  -> true
-        // "{"hp":"9"}" !== null           -> true
-        const hasChanged = newDataJson !== oldDataJson;
-
-        if (hasChanged) {
-            console.log(`[Poller] Mudança detectada em: ${charId}`);
-            
-            // 7. Busca o URL original (que o gateway salvou)
-            const originalUrl = await redisClient.get(linkKey);
-            if (!originalUrl) {
-                console.error(`[Poller] Não foi possível encontrar o URL original para o ID: ${charId}`);
-                continue;
-            }
-            
-            // 8. Prepara o payload final para o frontend (para o PUBLISH)
-            // (O payload contém os dados + o URL original)
-            const payload = {
-                ...newDataResult.data,
-                originalUrl: originalUrl
-            };
-            const payloadJson = JSON.stringify(payload);
- 
-            // 9. Atualiza o Cache (SET) com os dados PUROS (newDataJson)
-            // Isso garante que a próxima comparação (Passo 6) funcione.
-            await redisClient.set(cacheKey, newDataJson);
-            
-            // 10. Publica a mudança (PUBLISH) com o payload COMPLETO
-            await publisherClient.publish(channel, payloadJson);
-            
-        } else {
-            console.log(`[Poller] Sem mudanças em: ${charId}`);
-        }
+        // Chama a função centralizada (sem forçar)
+        await processCharacter(charId, originalUrl, false);
     }
 }
 
-// Inicia o loop principal
-function startPolling() {
+/**
+ * NOVO HANDLER: Lida com requisições de busca imediatas do gateway
+ */
+subscriberClient.on('message', async (channel, message) => {
+    if (channel === 'request:fetch') {
+        console.log(`[Poller] Recebida solicitação de busca imediata.`);
+        try {
+            const { charId, originalUrl } = JSON.parse(message);
+            if (charId && originalUrl) {
+                // Chama a função centralizada, forçando o 'publish'
+                // (Isso preenche o cache e envia os dados ao cliente)
+                await processCharacter(charId, originalUrl, true);
+            }
+        } catch (e) {
+            console.error("[Poller] Erro ao processar 'request:fetch'", e.message);
+        }
+    }
+});
+
+// Inicia ambos os serviços do poller
+function startServices() {
+    // 1. Inicia o loop de polling
     console.log(`[Poller] Iniciando loop de polling a cada ${POLLING_INTERVAL_MS}ms`);
     runUpdateLoop().catch(console.error);
     setInterval(() => {
         runUpdateLoop().catch(console.error);
     }, POLLING_INTERVAL_MS);
+    
+    // 2. Se inscreve no canal de requisições
+    subscriberClient.subscribe('request:fetch');
+    console.log("[Poller] Inscrito no canal 'request:fetch'.");
 }
 
-startPolling();
+startServices();
