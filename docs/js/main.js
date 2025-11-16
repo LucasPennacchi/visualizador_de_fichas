@@ -4,7 +4,6 @@ import * as store from './store.js';
 import * as controls from './ui/controls.js';
 import * as grid from './ui/grid.js';
 import * as card from './ui/card.js'; 
-import * as diceRoller from './ui/dice-roller/dice-roller.js';
 
 // --- Elemento Principal ---
 const gridElement = document.getElementById('dashboard-grid');
@@ -87,12 +86,17 @@ function handleDeleteLink(linkToDelete) {
 /**
  * INICIALIZAÇÃO DA APLICAÇÃO
  */
-function init() {
+async function init() {
   controls.initializeControls(handleLinksAdded);
   grid.initializeGrid(handleDeleteLink);
   
-  // Ainda em testes
-  // diceRoller.initializeDiceRoller();
+  try {
+    // (Ajuste o caminho se a sua pasta 'dice-roller' estiver em outro lugar)
+    const diceRoller = await import('./ui/dice-roller/dice-roller.js');
+    diceRoller.initializeDiceRoller();
+   } catch (e) {
+    console.error("Falha ao carregar o módulo do rolador de dados:", e);
+   }
   
   new Sortable(gridElement, {
     handle: '.card-drag-handle', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
@@ -110,5 +114,4 @@ function init() {
 }
 
 // Inicia tudo
-//init();
 window.addEventListener('load', init);

@@ -24,7 +24,10 @@ export function initializeDiceRoller() {
   
   // 4. Lógica de Rolar (Apertar Enter no input)
   elements.formulaInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleRoll();
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Impede o comportamento padrão (como submeter um formulário)
+      handleRoll();
+    }
   });
 
   // 5. Lógica de adicionar dados (clique nos botões d4, d6, etc.)
