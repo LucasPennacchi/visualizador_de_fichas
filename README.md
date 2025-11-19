@@ -1,9 +1,3 @@
-Com certeza. O `README.md` é a "vitrine" do seu projeto e, dada a complexidade da arquitetura de microserviços que construímos, ele precisa ser bem detalhado para explicar como as peças se encaixam.
-
-Aqui está um `README.md` profissional, cobrindo arquitetura, instalação, uso e estrutura do código.
-
------
-
 # GM Dashboard - Visualizador de Fichas em Tempo Real
 
 > Um sistema distribuído baseado em microserviços para monitoramento em tempo real de fichas de RPG da plataforma C.R.I.S. (Ordem Paranormal).
