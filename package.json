@@ -24,8 +24,5 @@
   "devDependencies": {
     "axios": "^1.12.2",
     "clipboardy": "^5.0.0"
-  },
-  "dependencies": {
-    "droll": "^0.2.1"
   }
 }

@@ -1,4 +1,7 @@
+# docker-compose.yml
+
 services:
+  # 1. Broker & Cache (Redis)
   redis:
     image: redis:7-alpine
     container_name: gm-redis
@@ -9,12 +12,13 @@ services:
     networks:
       - gm_network
 
+  # 2. API Gateway (WebSocket)
   gateway:
     container_name: gm-gateway
     build:
       context: ./services/servico-gateway
     ports:
-      - "3000:3000"
+      - "3000:3000" # Porta exposta para o Ngrok conectar
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -24,8 +28,9 @@ services:
       - gm_network
     restart: unless-stopped
 
+  # 3. Worker (Poller) - Escalável
   poller:
-    # container_name: gm-poller ERRO DE NOMEAÇÃO PARA O PARALELISMO
+    # container_name removido para permitir --scale poller=N
     build:
       context: ./services/servico-poller
     environment:
@@ -37,6 +42,7 @@ services:
       - gm_network
     restart: unless-stopped
 
+  # 4. Scheduler (Agendador)
   scheduler:
     container_name: gm-scheduler
     build:
