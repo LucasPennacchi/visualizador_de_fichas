@@ -1,10 +1,5 @@
 /* frontend/style.css */
 
-/* * Este é o arquivo principal de estilos.
- * Ele não contém estilos, apenas importa os "módulos" de CSS.
- * A ordem importa: 'base.css' deve vir primeiro.
-*/
-
 @import url("css/base.css");
 @import url("css/header.css");
 @import url("css/grid.css");

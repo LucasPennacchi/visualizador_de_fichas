@@ -19,10 +19,8 @@ function _roll(qty, sides) {
 
 /**
  * Helper 2: Processa um único "pedaço" da fórmula.
- * --- CORRIGIDO ---
  */
 function _processChunk(chunk) {
-  // O trim() foi movido daqui...
   let sign = 1; // 1 para positivo, -1 para negativo
 
   // 1. Verifica e remove os sinais
@@ -33,10 +31,9 @@ function _processChunk(chunk) {
     sign = -1;
    }
   
-  // 2. AGORA faz o trim()
+  // 2. Trim()
   // Isso transforma " 5" (com espaço) em "5"
   chunk = chunk.trim();
-  // --- FIM DA CORREÇÃO ---
 
   // Regex para dados com Vantagem/Desvantagem (ex: "2d20kh1", "3d6kl2")
   const keepRegex = /(\d*)d(\d+)(kh|kl)(\d+)/i;

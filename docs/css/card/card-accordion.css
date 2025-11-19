@@ -136,8 +136,6 @@
   line-height: 1.4;
 }
 
-/* --- NOVA ADIÇÃO: Estilos da Lista de Perícias --- */
-
 /* Estilo para a lista de perícias (NÃO é um accordion) */
 .skill-item {
   display: flex;

@@ -3,7 +3,6 @@
 import { elements } from './dice-dom.js';
 import { roll } from './dice-api.js';
 
-// (appendToFormula e clearRoller não mudam)
 export function appendToFormula(term) {
   const currentFormula = elements.formulaInput.value.trim();
   if (currentFormula === "") {

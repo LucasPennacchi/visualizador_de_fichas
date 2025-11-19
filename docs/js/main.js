@@ -8,7 +8,6 @@ import * as card from './ui/card.js';
 // --- Elemento Principal ---
 const gridElement = document.getElementById('dashboard-grid');
 
-// ... (processBatchData, loadDataFromCache, handleDataUpdate, etc. não mudam) ...
 function processBatchData(charactersData) {
   if (!charactersData || charactersData.length === 0) return;
   
