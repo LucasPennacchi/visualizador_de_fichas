@@ -1,61 +1,86 @@
 header {
-  background-color: #fff;
-  padding: 15px 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-  transition: all 0.2s ease-out;
-  max-width: 1800px; 
-  margin: 0 auto 20px auto; 
-  box-sizing: border-box; 	
+    background-color: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    transition: all 0.2s ease-out;
+    max-width: 1800px; 
+    margin: 0 auto 20px auto; 
+    box-sizing: border-box;     
 }
 
-.controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+/* Linha de Controles (Fichas e Sala) */
+.controls, .room-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
-#link-input {
-  flex-grow: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+/* Inputs Gerais */
+#link-input, #room-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
 }
 
-#add-link-btn {
-  background-color: #007bff;
+/* Estado Bloqueado (Quando em sala) */
+#room-input:disabled {
+    background-color: #e9ecef;
+    color: #555;
+    font-weight: bold;
+    /* cursor: not-allowed; */
+    border-color: #ced4da;
 }
-#add-link-btn:hover {
-  background-color: #0056b3;
+
+/* Botões Padrão */
+#add-link-btn, #join-room-btn, #create-room-btn {
+    background-color: #007bff;
+}
+#add-link-btn:hover, #join-room-btn:hover, #create-room-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Botão de Sair (Vermelho) */
+#leave-room-btn {
+    background-color: #dc3545;
+}
+#leave-room-btn:hover {
+    background-color: #c82333;
+}
+
+/* Classe utilitária para esconder elementos */
+.hidden {
+    display: none !important;
 }
 
 #link-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 .link-tag {
-  background-color: #e9ecef;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 12px;
+    background-color: #e9ecef;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
 }
 
 /* Estilos do Header Minim-vel */
 .header-top {
-  display: flex; 
-  justify-content: space-between;
-  align-items: center; 
+    display: flex; 
+    justify-content: space-between;
+    align-items: center; 
 }
 
 #toggle-header-btn {
-  width: 28px; height: 28px; background-color: #e9ecef;
-  color: #555; border: none; border-radius: 50%;
-  cursor: pointer; font-weight: bold; font-size: 1.2em;
-  line-height: 1; padding: 0; flex-shrink: 0; 
+    width: 28px; height: 28px; background-color: #e9ecef;
+    color: #555; border: none; border-radius: 50%;
+    cursor: pointer; font-weight: bold; font-size: 1.2em;
+    line-height: 1; padding: 0; flex-shrink: 0; 
 }
 #toggle-header-btn:hover { background-color: #ddd; }
 header:not(.header-minimized) #toggle-header-btn::before { content: '−'; }
@@ -63,13 +88,13 @@ header.header-minimized #toggle-header-btn::before { content: '+'; }
 header.header-minimized .controls-content { display: none; }
 
 header.header-minimized {
-  padding: 8px 20px; 
-  margin-bottom: 15px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    padding: 8px 20px; 
+    margin-bottom: 15px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 header.header-minimized .header-top {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 header:not(.header-minimized) .header-top {
-  margin-bottom: 10px;
+    margin-bottom: 10px;
 }

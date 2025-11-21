@@ -1,83 +1,82 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GM Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GM Dashboard</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <header>
-    <div class="header-top">
-      <h1>GM Dashboard - Status dos Personagens</h1>
-      <button id="toggle-header-btn" title="Minimizar/Maximizar"></button>
-    </div>
+    <header>
+        <div class="header-top">
+            <h1>GM Dashboard - Status dos Personagens</h1>
+            <button id="toggle-header-btn" title="Minimizar/Maximizar"></button>
+        </div>
 
-    <div class="controls-content">
-      <div class="controls">
-                      <input type="text" id="link-input" placeholder="Cole o link ou código do personagem aqui">
-               <button id="add-link-btn">Adicionar Personagem</button>
-      </div>
-      <div id="link-list">
+        <div class="controls-content">
+            <div class="controls">
+                <input type="text" id="link-input" placeholder="Cole o link ou código do personagem aqui">
+                <button id="add-link-btn">Adicionar Personagem</button>
+            </div>
+
+            <div class="room-controls">
+                <input type="text" id="room-input" placeholder="Código da Sala (Ex: RPG-123)">
+                <button id="join-room-btn" title="Entrar em uma sala existente">Entrar</button>
+                <button id="create-room-btn" title="Criar uma nova sala com as fichas atuais">Criar Sala</button>
+                <button id="leave-room-btn" class="hidden" title="Sair da sala atual">Sair da Sala</button>
+            </div>
+
+            <div id="link-list">
+            </div>
+        </div>
+    </header>
+
+    <main id="dashboard-grid">
+        <div class="card-placeholder">
+            Adicione links ou códigos de portrait para começar...
+        </div>
+    </main>
+
+    <div id="dice-roller-widget" class="collapsed">
+        <div class="dice-roller-header">
+            <span>Rolador de Dados</span>
+            <button id="dice-roller-toggle" title="Abrir/Fechar"></button>
+        </div>
+        <div class="dice-roller-content">
+            <input type="text" id="dice-formula-input" placeholder="Ex: 2d20 + 1d6 + 5">
+            <fieldset class="dice-fieldset">
+                <legend>Adicionar Dados</legend>
+                <input type="number" id="dice-pool-qty" value="1" min="1" title="Quantidade">
+                <div class="dice-button-group" id="dice-pool-buttons">
+                    <button data-die="d4">d4</button>
+                    <button data-die="d6">d6</button>
+                    <button data-die="d8">d8</button>
+                    <button data-die="d10">d10</button>
+                    <button data-die="d12">d12</button>
+                    <button data-die="d20">d20</button>
+                </div>
+            </fieldset>
+            <fieldset class="dice-fieldset">
+                <legend>Adicionar Modificador</legend>
+                <input type="number" id="dice-pool-mod" value="0" title="Modificador">
+                <button id="dice-pool-add-mod">Adicionar</button>
+            </fieldset>
+            <fieldset class="dice-fieldset" id="dice-roll-mode-group">
+                <legend>Modo de Rolagem</legend>
+                <label><input type="radio" name="roll-mode" value="sum" checked> Soma</label>
+                <label><input type="radio" name="roll-mode" value="adv"> Vantagem (kh1)</label>
+                <label><input type="radio" name="roll-mode" value="disadv"> Desvantagem (kl1)</label>
+            </fieldset>
+            <div class="dice-actions">
+                <button id="dice-roll-btn">Rolar</button>
+                <button id="dice-clear-btn">Limpar</button>
+            </div>
+            <div id="dice-result-display"></div>
         </div>
     </div>
-  </header>
 
-  <main id="dashboard-grid">
-    <div class="card-placeholder">
-      Adicione links ou códigos de portrait para começar...
-    </div>
-  </main>
-
-  <div id="dice-roller-widget" class="collapsed">
-    <div class="dice-roller-header">
-      <span>Rolador de Dados</span>
-      <button id="dice-roller-toggle" title="Abrir/Fechar"></button>
-    </div>
-
-    <div class="dice-roller-content">
-      
-        <input type="text" id="dice-formula-input" placeholder="Ex: 2d20 + 1d6 + 5">
-      
-        <fieldset class="dice-fieldset">
-        <legend>Adicionar Dados</legend>
-        <input type="number" id="dice-pool-qty" value="1" min="1" title="Quantidade">
-        <div class="dice-button-group" id="dice-pool-buttons">
-          <button data-die="d4">d4</button>
-          <button data-die="d6">d6</button>
-          <button data-die="d8">d8</button>
-          <button data-die="d10">d10</button>
-          <button data-die="d12">d12</button>
-          <button data-die="d20">d20</button>
-        </div>
-      </fieldset>
-
-        <fieldset class="dice-fieldset">
-        <legend>Adicionar Modificador</legend>
-        <input type="number" id="dice-pool-mod" value="0" title="Modificador">
-        <button id="dice-pool-add-mod">Adicionar</button>
-      </fieldset>
-
-        <fieldset class="dice-fieldset" id="dice-roll-mode-group">
-        <legend>Modo de Rolagem</legend>
-        <label><input type="radio" name="roll-mode" value="sum" checked> Soma</label>
-        <label><input type="radio" name="roll-mode" value="adv"> Vantagem (kh1)</label>
-        <label><input type="radio" name="roll-mode" value="disadv"> Desvantagem (kl1)</label>
-      </fieldset>
-      
-        <div class="dice-actions">
-        <button id="dice-roll-btn">Rolar</button>
-        <button id="dice-clear-btn">Limpar</button>
-      </div>
-      <div id="dice-result-display"></div>
-    </div>
-  </div>
-
-
-
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js" defer></script>
-  <script src="js/main.js" type="module"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js" defer></script>
+    <script src="js/main.js" type="module"></script>
 </body>
 </html>

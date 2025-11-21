@@ -28,6 +28,13 @@ const DATA_STORAGE_KEY = 'gm_dashboard_data_cache';
  */
 const HEADER_STATE_KEY = 'gm_dashboard_header_state';
 
+/**
+ * Chave para armazenar a sala.
+ * @constant {string}
+ * @private
+ */
+const ROOM_ID_KEY = 'gm_dashboard_room_id';
+
 // --- Gerenciamento de Links ---
 
 /**
@@ -87,4 +94,27 @@ export function getHeaderState() {
  */
 export function saveHeaderState(state) {
   localStorage.setItem(HEADER_STATE_KEY, state);
+}
+
+/**
+ * Recupera o ID da sala atual, se houver.
+ * @returns {string|null} O código da sala ou null.
+ */
+export function getRoomId() {
+  return localStorage.getItem(ROOM_ID_KEY);
+}
+
+/**
+ * Salva o ID da sala (quando entra/cria).
+ * @param {string} roomId 
+ */
+export function saveRoomId(roomId) {
+  localStorage.setItem(ROOM_ID_KEY, roomId);
+}
+
+/**
+ * Remove o ID da sala (quando sai).
+ */
+export function clearRoomId() {
+  localStorage.removeItem(ROOM_ID_KEY);
 }
