@@ -2,10 +2,8 @@
  * @module Services/Poller/Adapters/CrisAdapter
  * @description Adaptador específico para o sistema "Ordem Paranormal" via plataforma C.R.I.S.
  * Realiza a extração de dados da API do Google Firestore e a transformação para o Modelo Canônico.
- * * @responsibility
- * 1. Buscar dados brutos.
- * 2. Normalizar estatísticas (Atributos, Perícias).
- * 3. Traduzir estados de jogo (Morrendo, Enlouquecendo) para feedback visual genérico (Cores).
+ * * Implementa lógica de detecção heurística para o modo "Sobrevivendo ao Horror" (Determinação),
+ * verificando múltiplas flags (isPdOn, isSobrevivendoAoHorror) para garantir compatibilidade.
  */
 
 const axios = require('axios');
@@ -34,46 +32,88 @@ const getCharacterId = (url) => {
 
 // --- Mappers de Sub-estruturas ---
 
-const mapVitals = (fields) => [
-    {
+/**
+ * Mapeia as barras de recursos vitais baseando-se no modo de jogo detectado.
+ * Utiliza verificação robusta de flags (PD ou Sobrevivendo ao Horror).
+ * * @param {Object} fields - Campos brutos do Firestore.
+ * @returns {Array<Object>} Lista de objetos vitais canônicos.
+ */
+const mapVitals = (fields) => {
+    const vitals = [];
+    
+    // 1. Vida (PV) - Sempre presente
+    vitals.push({
         id: "hp",
         label: "PV",
-        current: parseInt(fields.currentPv.integerValue),
-        max: parseInt(fields.maxPv.integerValue),
+        current: parseInt(fields.currentPv?.integerValue || 0),
+        max: parseInt(fields.maxPv?.integerValue || 0),
         color: "#dc3545", // Vermelho
         order: 1
-    },
-    {
-        id: "san",
-        label: "SAN",
-        current: parseInt(fields.currentSan.integerValue),
-        max: parseInt(fields.maxSan.integerValue),
-        color: "#007bff", // Azul
-        order: 2
-    },
-    {
-        id: "pe",
-        label: "PE",
-        current: parseInt(fields.currentPe.integerValue),
-        max: parseInt(fields.maxPe.integerValue),
-        color: "#ffc107", // Amarelo
-        order: 3
-    }
-];
+    });
 
-const mapAttributes = (attrs) => [
-    { id: "agi", label: "AGI", value: attrs.dex.integerValue },
-    { id: "for", label: "FOR", value: attrs.str.integerValue },
-    { id: "int", label: "INT", value: attrs.int.integerValue },
-    { id: "pre", label: "PRE", value: attrs.pre.integerValue },
-    { id: "vig", label: "VIG", value: attrs.con.integerValue }
-];
+    // Detecção do Modo "Sobrevivendo ao Horror" / "Determinação"
+    // Verifica a flag explícita OU a flag legado 'isPdOn' OU se existe valor máximo de PD configurado
+    const isSurvivalHorror = fields.isSobrevivendoAoHorror?.booleanValue;
+    const isPdOn = fields.isPdOn?.booleanValue;
+    const hasPdStats = (fields.maxPd?.integerValue && parseInt(fields.maxPd.integerValue) > 0);
+
+    const shouldUseDetermination = isPdOn;
+
+    if (shouldUseDetermination) {
+        // Modo Determinação (PD/DT)
+        // Tenta ler dos campos 'Pd', com fallback para 'Dt' ou 'San' se necessário
+        const currentDt = fields.currentPd?.integerValue || fields.currentDt?.integerValue || 0;
+        const maxDt = fields.maxPd?.integerValue || fields.maxDt?.integerValue || 0;
+
+        vitals.push({
+            id: "dt",
+            label: "DT", // Determinação
+            current: parseInt(currentDt),
+            max: parseInt(maxDt),
+            color: "#6f42c1", // Roxo
+            order: 2
+        });
+    } else {
+        // Modo Padrão (Ordem Paranormal Clássico)
+        vitals.push({
+            id: "san",
+            label: "SAN",
+            current: parseInt(fields.currentSan?.integerValue || 0),
+            max: parseInt(fields.maxSan?.integerValue || 0),
+            color: "#007bff", // Azul
+            order: 2
+        });
+
+        vitals.push({
+            id: "pe",
+            label: "PE",
+            current: parseInt(fields.currentPe?.integerValue || 0),
+            max: parseInt(fields.maxPe?.integerValue || 0),
+            color: "#ffc107", // Amarelo
+            order: 3
+        });
+    }
+
+    return vitals;
+};
+
+const mapAttributes = (attrs) => {
+    // Fallback para objeto vazio caso attrs seja undefined
+    const safeAttrs = attrs || {};
+    return [
+        { id: "agi", label: "AGI", value: safeAttrs.dex?.integerValue || 0 },
+        { id: "for", label: "FOR", value: safeAttrs.str?.integerValue || 0 },
+        { id: "int", label: "INT", value: safeAttrs.int?.integerValue || 0 },
+        { id: "pre", label: "PRE", value: safeAttrs.pre?.integerValue || 0 },
+        { id: "vig", label: "VIG", value: safeAttrs.con?.integerValue || 0 }
+    ];
+};
 
 const mapSecondaryStats = (fields) => [
     { label: "Defesa", value: fields.evade?.integerValue || "0" },
     { label: "Bloqueio", value: fields.block?.integerValue || "0" },
     { label: "Desl.", value: `${fields.movement?.integerValue || 0}m` },
-    { label: "Carga", value: `${fields.currentLoad?.integerValue}/${fields.maxLoad?.integerValue}` }
+    { label: "Carga", value: `${fields.currentLoad?.integerValue || 0}/${fields.maxLoad?.integerValue || 0}` }
 ];
 
 // --- Implementação do Adaptador ---
@@ -89,8 +129,7 @@ function matches(url) {
 
 /**
  * Busca os dados e retorna o JSON Canônico.
- * Realiza a tradução de regras de negócio para propriedades visuais.
- * * @param {string} url - URL da ficha.
+ * @param {string} url - URL da ficha.
  * @returns {Promise<Object|null>} O objeto canônico normalizado.
  */
 async function fetch(url) {
@@ -103,15 +142,13 @@ async function fetch(url) {
         const { data } = await axios.get(firestoreUrl);
         const fields = data.fields;
 
-        // --- Lógica de Decisão Visual (Adapter Pattern) ---
-        // O Adaptador decide a cor da borda baseado nas regras do sistema específico.
-        // Isso remove a lógica de "regras" do frontend.
-        let borderColor = null; // Null = cor padrão (cinza/neutro)
+        // Lógica de Decisão Visual (Status)
+        let borderColor = null; 
         
-        if (fields.deathMode.booleanValue) {
-            borderColor = "#dc3545"; // Vermelho (Morrendo)
-        } else if (fields.madnessMode.booleanValue) {
-            borderColor = "#800080"; // Roxo (Enlouquecendo)
+        if (fields.deathMode?.booleanValue) {
+            borderColor = "#dc3545"; // Vermelho
+        } else if (fields.madnessMode?.booleanValue) {
+            borderColor = "#800080"; // Roxo
         }
 
         // Construção do JSON Canônico
@@ -123,15 +160,14 @@ async function fetch(url) {
                 sourceUrl: url
             },
             header: {
-                name: fields.name.stringValue,
-                description: `${fields.className.stringValue} - NEX ${fields.nex.stringValue}`,
-                avatarUrl: fields.sheetPictureURL.stringValue,
-                // Injeção da propriedade visual calculada
+                name: fields.name?.stringValue || 'Desconhecido',
+                description: `${fields.className?.stringValue || 'Classe'} - NEX ${fields.nex?.stringValue || '0%'}`,
+                avatarUrl: fields.sheetPictureURL?.stringValue || '',
                 borderColor: borderColor
             },
-            // 'status' removido pois a lógica visual já foi resolvida acima
+            // Mapeamento condicional de barras vitais
             vitals: mapVitals(fields),
-            attributes: mapAttributes(fields.attributes.mapValue.fields),
+            attributes: mapAttributes(fields.attributes?.mapValue?.fields),
             properties: mapSecondaryStats(fields),
             sections: [
                 {
