@@ -1,159 +1,208 @@
+/* frontend/css/card/card-accordion.css */
+
+/* --- Estrutura Base do Accordion (Container) --- */
 .card-expand-content {
-  display: grid;
-  grid-template-rows: 0fr; /* Começa "fechado" */
-  transition: grid-template-rows 0.3s ease-out;
-  margin-top: 0;
-  cursor: default; 
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-out;
+    margin-top: 0;
+    cursor: default; 
 }
 .card-expand-inner {
-  overflow: hidden;
-  min-height: 0; 
+    overflow: hidden;
+    min-height: 0; 
 }
 .character-card.card-expanded .card-expand-content {
-  grid-template-rows: 1fr; 
-  margin-top: 15px; 
+    grid-template-rows: 1fr; 
+    margin-top: 15px; 
 }
 
-/* Layout do item do accordion PAI*/
+/* --- Accordion PAI (Categorias: Habilidades, Rituais, etc) --- */
 .accordion-item {
-  border: 1px solid #eee;
-  border-radius: 5px;
-  margin-bottom: 8px;
-  overflow: hidden; 
-}
-.accordion-header {
-  background-color: #f9f9f9;
-  padding: 10px 12px;
-  cursor: pointer;
-  font-weight: bold;
-  color: #555;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.accordion-header:hover {
-  background-color: #f1f1f1;
-}
-.accordion-header::after {
-  content: '+';
-  font-size: 1.2em;
-  font-weight: bold;
-  color: #888;
-}
-.accordion-header.active::after {
-  content: '−';
+    border: 1px solid #eee;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    overflow: hidden; 
 }
 
-/* Conteúdo do accordion PAI */
+.accordion-header {
+    background-color: #f9f9f9;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Animação de cor de fundo mantida (opcional), mas rotação removida */
+    transition: background-color 0.2s;
+}
+.accordion-header:hover { background-color: #f1f1f1; }
+
+/* Ícone de +/- do PAI */
+.accordion-header::after {
+    content: '+';
+    font-size: 1.2em; 
+    font-weight: bold; 
+    color: #888;
+}
+
+/* Quando ativo, troca o caractere */
+.accordion-header.active::after {
+    content: '−'; /* Troca para sinal de menos */
+}
+
+/* Conteúdo do PAI */
 .accordion-content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s ease-out, padding 0.3s ease-out;
-  padding: 0 12px; 
-  background-color: #fff;
-  font-size: 0.9em;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-out;
+    padding: 0 12px; 
+    background-color: #fff;
+    font-size: 0.9em;
 }
-.accordion-inner {
-  overflow: hidden;
-  min-height: 0;
+
+.accordion-inner { 
+    overflow: hidden; 
+    min-height: 0; 
 }
+
 .accordion-header.active + .accordion-content {
-  grid-template-rows: 1fr;
-  border-top: 1px solid #eee;
+    grid-template-rows: 1fr;
+    border-top: 1px solid #eee;
 }
 .accordion-header.active + .accordion-content .accordion-inner {
-  padding: 8px 4px; 
+    padding: 8px 4px; 
 }
 
 .accordion-content .list-placeholder {
-  color: #888;
-  font-style: italic;
-  padding: 12px;
+    color: #888; font-style: italic; padding: 12px;
 }
 
-/* --- Accordion Aninhado (Item Individual) --- */
+
+/* --- ACCORDION ANINHADO (Itens Individuais) --- */
+
 .inner-accordion-item {
-  border-bottom: 1px solid #f4f4f4;
+    border-bottom: 1px solid #f4f4f4;
 }
-.inner-accordion-item:last-child {
-  border-bottom: none;
-}
+.inner-accordion-item:last-child { border-bottom: none; }
+
+/* Cabeçalho do Item */
 .inner-accordion-header {
-  padding: 10px 8px;
-  cursor: pointer;
-  font-weight: bold;
-  color: #333;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+    padding: 8px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
 }
-.inner-accordion-header:hover {
-  background-color: #f9f9f9;
+
+/* Só muda o cursor se for clicável */
+.inner-accordion-header.clickable {
+    cursor: pointer;
 }
-.inner-accordion-header::after {
-  content: '+';
-  font-weight: bold;
-  color: #aaa;
-  font-size: 1.1em;
-  margin-left: 10px;
-  transition: transform 0.2s ease-out;
-  transform: rotate(-90deg); 
+.inner-accordion-header.clickable:hover {
+    background-color: #f9f9f9;
+}
+
+/* Layout Flex */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Estilos de Texto */
+.item-name {
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.item-value {
+    font-weight: bold;
+    color: #007bff; 
+    font-size: 0.95em;
+}
+.item-tag {
+    background-color: #e9ecef;
+    color: #666;
+    font-size: 0.75em;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* Ícone de +/- do Item ANINHADO */
+.inner-accordion-header.clickable::after {
+    content: '+';
+    font-weight: bold; 
+    color: #aaa;
+    font-size: 1.1em; 
+    margin-left: 6px;
 }
 .inner-accordion-header.active::after {
-  content: '−';
-  transform: rotate(0deg); 
-}
-.inner-accordion-header .item-slots {
-  font-size: 0.9em;
-  color: #007bff;
-  font-weight: bold;
-  margin-left: auto; 
-  padding-right: 10px;
-}
-.inner-accordion-content {
-  display: grid;
-  grid-template-rows: 0fr; 
-  transition: grid-template-rows 0.3s ease-out;
-  font-size: 0.95em;
-  background-color: #fafafa; 
-}
-.inner-accordion-header.active + .inner-accordion-content {
-  grid-template-rows: 1fr; 
-}
-.inner-accordion-inner {
-  overflow: hidden;
-  min-height: 0;
-}
-.inner-accordion-inner p {
-  color: #666;
-  margin: 0;
-  padding: 8px 12px 12px 12px; 
-  border-top: 1px dashed #eee;
-  line-height: 1.4;
+    content: '−'; /* Troca para sinal de menos */
 }
 
-/* Estilo para a lista de perícias (NÃO é um accordion) */
+/* Conteúdo da Descrição */
+.inner-accordion-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-out;
+    font-size: 0.95em;
+    background-color: #fafafa; 
+    margin: 0 -4px; 
+    border-radius: 4px;
+    
+    /* Adição crucial: garante que o conteúdo fique invisível quando fechado */
+    visibility: hidden; 
+}
+
+/* Estado Aberto */
+.inner-accordion-header.active + .inner-accordion-content {
+    grid-template-rows: 1fr;
+    /* Torna visível quando abre */
+    visibility: visible; 
+    /* Adicionamos um delay na visibilidade para não sumir antes da animação acabar */
+    transition: grid-template-rows 0.3s ease-out, visibility 0s 0s;
+}
+
+/* Estado Fechado (Transição) */
+/* Quando a classe active é removida, aplicamos um delay no visibility */
+.inner-accordion-content {
+    transition: grid-template-rows 0.3s ease-out, visibility 0s 0.3s;
+}
+
+.inner-accordion-inner {
+    overflow: hidden; /* Essencial para a animação de grid funcionar */
+    min-height: 0;
+}
+
+/* Parágrafo da descrição */
+.inner-accordion-inner p {
+    color: #555;
+    margin: 0;
+    padding: 8px 12px 12px 12px; 
+    border-top: 1px dashed #eee;
+    line-height: 1.4;
+}
+
+/* Lista Simples */
 .skill-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 8px; /* Mais espaçado que o accordion aninhado */
-  border-bottom: 1px solid #f4f4f4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f4f4f4;
 }
-.skill-item:last-child {
-  border-bottom: none;
-}
-.skill-name {
-  font-weight: bold;
-  color: #333;
-  font-size: 0.95em;
-}
-.skill-value {
-  font-weight: bold;
-  font-size: 1em;
-  color: #007bff; /* Azul, para destaque */
-  white-space: nowrap; /* Impede que "4d20 + 5" quebre a linha */
-  margin-left: 10px;
-}
+.skill-name { font-weight: bold; color: #333; font-size: 0.9em; }
+.skill-value { font-weight: bold; color: #007bff; }

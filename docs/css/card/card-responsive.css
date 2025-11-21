@@ -1,51 +1,48 @@
-/* --- Media Queries (Responsividade Global) --- */
-/* Afeta o layout geral e o grid */
+/* frontend/css/card/card-responsive.css */
 
+/* --- Media Queries (Global) --- */
 @media (max-width: 600px) {
-  body { padding: 10px; }
-  header { padding: 15px; }
-  h1 { font-size: 1.5em; }
-  .controls { flex-direction: column; }
-  #dashboard-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 15px;
-  }
-}
-@media (max-width: 400px) {
-  h1 { font-size: 1.2em; }
-  .character-card { padding: 12px; }
+    body { padding: 10px; }
+    header { padding: 15px; }
+    h1 { font-size: 1.5em; }
+    .controls { flex-direction: column; }
+    
+    /* Ajuste do Masonry via JS é necessário para centralizar, 
+       mas o CSS garante que não estoure a tela */
+    #dashboard-grid {
+        width: 100%; 
+    }
 }
 
+/* --- Container Queries (Responsividade do Card Interno) --- */
 
-/* --- Container Queries (Responsividade do Card) --- */
-/* Afeta apenas o conteúdo DENTRO do .character-card */
-
-/* ESTADO COMPACTO: 
- * Quando o card for espremido (MENOS de 230px de largura)
-*/
+/* COMPACTO (< 230px) */
 @container card (width < 230px) {
-  .character-card { padding: 10px; border-width: 1px; }
-  .card-header { gap: 8px; padding-bottom: 8px; margin-bottom: 8px; }
-  .card-portrait-img, .card-portrait-placeholder { width: 45px; height: 45px; }
-  .card-title h2 { font-size: 1.1em; }
-  .card-title span { font-size: 0.8em; }
-  .stat { padding: 5px 0; font-size: 0.9em; border-bottom: none; }
-  .stat span:last-child { font-size: 1em; }
-  .extra-stats { margin-top: 8px; padding-top: 8px; font-size: 0.75em; gap: 4px 8px; }
-  .attr-label { font-size: 0.65em; }
-  .attr-value { font-size: 1.1em; }
+    .character-card { padding: 10px; border-width: 1px; }
+    
+    .card-header { gap: 8px; padding-bottom: 8px; margin-bottom: 8px; }
+    .card-portrait-img, .card-portrait-placeholder { width: 45px; height: 45px; }
+    .card-title h2 { font-size: 1.1em; }
+    
+    .vital-row { font-size: 0.8em; gap: 4px; }
+    .vital-label { width: 25px; }
+    
+    .extra-stats { margin-top: 8px; padding-top: 8px; font-size: 0.75em; }
+    
+    .attr-label { font-size: 0.6em; }
+    .attr-value { font-size: 1.1em; }
 }
 
-/* ESTADO MINÚSCULO: 
- * Quando o card for MUITO espremido (menos de 180px)
-*/
+/* MINÚSCULO (< 180px) */
 @container card (width < 180px) {
-  /* Esconde a foto */
-  .card-portrait-img, .card-portrait-placeholder { display: none; }
-  .card-title h2 { font-size: 1em; }
-  /* Esconde os stats extras */
-  .extra-stats { display: none; }
-  .stat { font-size: 0.85em; }
-  /* Esconde a barra de atributos */
-  .attr-bar { display: none; }
+    .card-portrait-img, .card-portrait-placeholder { display: none; }
+    .card-title h2 { font-size: 1em; }
+    
+    /* Esconde detalhes para economizar espaço */
+    .extra-stats { display: none; }
+    .attr-bar { display: none; }
+    
+    /* Simplifica as barras */
+    .vital-value { display: none; } /* Esconde texto "10/20" */
+    .vital-label { width: auto; margin-right: 5px; }
 }

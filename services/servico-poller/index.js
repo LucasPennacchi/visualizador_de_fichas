@@ -1,148 +1,112 @@
 /**
  * @module Services/Poller/Worker
- * @description Microserviço Worker responsável pelo processamento assíncrono de fichas.
- * Implementa o padrão "Competing Consumers": múltiplas instâncias deste serviço podem
- * rodar em paralelo, consumindo jobs de uma fila compartilhada no Redis.
- * Realiza a busca de dados externos, verificação de integridade (cache hit/miss)
- * e publicação de eventos de mudança (Change Data Capture).
+ * @description Microserviço Worker Agnóstico.
+ * Responsável por processar jobs de atualização de fichas de qualquer sistema de RPG suportado.
+ * Utiliza o padrão Registry para delegar a lógica de busca e normalização para o adaptador correto,
+ * mantendo a infraestrutura de filas e cache completamente genérica.
  */
 
 const Redis = require('ioredis');
-const { fetchFromGoogle } = require('./googleFetcher');
+const { getAdapterForUrl } = require('./adapters/registry');
+
+// --- Importação dos Adaptadores (Side-effect: Auto-registro) ---
+// Novos sistemas devem ser importados aqui para serem reconhecidos.
+require('./adapters/crisAdapter');
 
 // --- Configuração e Constantes ---
-
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = process.env.REDIS_PORT || 6379;
-
-/**
- * Nome da fila de trabalho (List) no Redis.
- * Deve ser o mesmo nome utilizado pelo Gateway e Scheduler.
- * @constant {string}
- */
 const QUEUE_NAME = 'fila:trabalho:revalidar';
 
 // --- Inicialização dos Clientes Redis ---
-
-/**
- * Cliente Redis para operações padrão de leitura e escrita (GET/SET).
- * @type {Redis}
- */
 const redisClient = new Redis(REDIS_PORT, REDIS_HOST);
-
-/**
- * Cliente Redis dedicado para publicação de mensagens (PUBLISH).
- * @type {Redis}
- */
 const publisherClient = new Redis(REDIS_PORT, REDIS_HOST);
+const workerClient = new Redis(REDIS_PORT, REDIS_HOST); // Cliente bloqueante para BRPOP
+
+console.log(`[Worker] Conectado ao Redis em ${REDIS_HOST}:${REDIS_PORT}`);
 
 /**
- * Cliente Redis dedicado para operações bloqueantes de fila (BRPOP).
- * Necessário um cliente exclusivo pois o comando BRPOP bloqueia a conexão
- * até que um item esteja disponível, impedindo outros comandos na mesma conexão.
- * @type {Redis}
- */
-const workerClient = new Redis(REDIS_PORT, REDIS_HOST);
-
-console.log(`[Worker] Inicializando conexão com Redis em ${REDIS_HOST}:${REDIS_PORT}`);
-
-// --- Funções de Lógica de Negócio ---
-
-/**
- * Processa a atualização de um único personagem.
- * Executa o fluxo completo: Busca Externa -> Comparação com Cache -> Atualização de Estado -> Notificação.
- * * @param {string} charId - O ID único do personagem.
- * @param {string} originalUrl - A URL original da ficha (necessária para o payload do frontend).
- * @param {boolean} [forcePublish=false] - Flag para ignorar a verificação de mudança (útil para "Cold Start").
+ * Processa um Job de atualização de personagem.
+ * Localiza o adaptador correto, busca os dados normalizados e propaga alterações.
+ * * @param {string} charId - ID do personagem (usado para chave de cache).
+ * @param {string} originalUrl - URL completa (usada para selecionar o adaptador).
+ * @param {boolean} forcePublish - Se true, publica mesmo sem mudanças (Cold Start).
  */
 async function processCharacter(charId, originalUrl, forcePublish = false) {
-  console.log(`[Worker] Processando Job ID: ${charId}`);
-  
-  const cacheKey = `ficha:${charId}`;
-  const channel = `updates:${charId}`;
-  
-  // 1. Integração Externa: Busca dados na fonte oficial (Google Firestore)
-  const newDataResult = await fetchFromGoogle(charId);
-  
-  if (!newDataResult) {
-    console.warn(`[Worker] Falha crítica ao buscar dados para ${charId}. Abortando job.`);
-    return;
-  }
+    console.log(`[Worker] Processando: ${charId}`);
 
-  // 2. Verificação de Estado: Busca a última versão conhecida no Cache
-  const oldDataJson = await redisClient.get(cacheKey);
-  
-  // Serializa o novo dado para comparação e armazenamento
-  const newDataJson = JSON.stringify(newDataResult.data);
-  
-  // 3. Detecção de Mudança (Deep Equality via String Comparison)
-  // Compara a string JSON atual com a antiga. Se diferirem, houve alteração.
-  const hasChanged = newDataJson !== oldDataJson;
+    // 1. Seleção de Estratégia: Busca o adaptador correto para a URL
+    const adapter = getAdapterForUrl(originalUrl);
 
-  // 4. Tomada de Decisão: Publicar ou Ignorar?
-  if (hasChanged || forcePublish) {
-    if (hasChanged) {
-      console.log(`[Worker] Delta detectado para: ${charId}`);
-    } else if (forcePublish) {
-      console.log(`[Worker] Publicação forçada (Cold Start) para: ${charId}`);
+    if (!adapter) {
+        console.warn(`[Worker] Erro: Nenhum adaptador encontrado para a URL: ${originalUrl}`);
+        return; // Descarta o job silenciosamente
     }
-    
-    // Reconstrói o payload enriquecido para o Frontend
-    const payload = {
-      ...newDataResult.data,
-      originalUrl: originalUrl
-    };
-    const payloadJson = JSON.stringify(payload);
 
-    // 5. Atualização de Estado (Transação Implícita)
-    // Primeiro atualiza a "Fonte da Verdade" (Cache)
-    await redisClient.set(cacheKey, newDataJson);
+    // 2. Execução do Adaptador: Busca e Normalização
+    // O retorno aqui já é o JSON Canônico Universal
+    const newDataResult = await adapter.fetch(originalUrl);
     
-    // Depois notifica os interessados (Pub/Sub)
-    await publisherClient.publish(channel, payloadJson);
+    if (!newDataResult) {
+        console.warn(`[Worker] Falha na busca de dados para ${charId} via ${adapter.systemId}.`);
+        return;
+    }
+
+    // 3. Gerenciamento de Estado (Cache e CDC)
+    const cacheKey = `ficha:${charId}`;
+    const channel = `updates:${charId}`;
+
+    const oldDataJson = await redisClient.get(cacheKey);
+    const newDataJson = JSON.stringify(newDataResult.data); // Dados Canônicos
     
-  } else {
-    console.log(`[Worker] Nenhuma alteração detectada para: ${charId}`);
-  }
+    const hasChanged = newDataJson !== oldDataJson;
+
+    if (hasChanged || forcePublish) {
+        if (hasChanged) console.log(`[Worker] Delta detectado (${adapter.systemId}): ${charId}`);
+        
+        // O payload agora contém o JSON Canônico + URL de referência
+        const payload = {
+            ...newDataResult.data,
+            originalUrl: originalUrl
+        };
+        const payloadJson = JSON.stringify(payload);
+
+        // Atualiza Cache e Notifica
+        await redisClient.set(cacheKey, newDataJson);
+        await publisherClient.publish(channel, payloadJson);
+        
+    } else {
+        console.log(`[Worker] Sem alterações: ${charId}`);
+    }
 }
 
 /**
- * Loop principal do Worker.
- * Implementa um consumidor de fila bloqueante infinito.
- * Mantém o processo vivo aguardando tarefas distribuídas pelo Scheduler ou Gateway.
+ * Loop Principal do Worker.
+ * Consome a fila de tarefas de forma bloqueante e sequencial.
  */
 async function startWorker() {
-  console.log(`[Worker] Serviço iniciado. Aguardando jobs na fila '${QUEUE_NAME}'...`);
-  
-  // Loop infinito de processamento
-  while (true) {
-    try {
-      // 1. Consumo de Fila (Blocking Pop)
-      // Remove e retorna o último elemento da lista. Se vazia, bloqueia a conexão (timeout 0 = infinito).
-      // Retorna um array: [nome_da_fila, valor_do_item]
-      const result = await workerClient.brpop(QUEUE_NAME, 0);
-      const jobPayload = result[1]; 
-      
-      // 2. Deserialização do Job
-      const { charId, originalUrl, force } = JSON.parse(jobPayload);
-      
-      // 3. Execução Segura
-      if (charId && originalUrl) {
-        await processCharacter(charId, originalUrl, force || false);
-      } else {
-        console.warn("[Worker] Job malformado recebido e descartado:", jobPayload);
-      }
+    console.log(`[Worker] Serviço iniciado. Aguardando jobs na fila '${QUEUE_NAME}'...`);
+    
+    while (true) {
+        try {
+            // Bloqueia a conexão até que um job esteja disponível (Timeout 0 = Infinito)
+            const result = await workerClient.brpop(QUEUE_NAME, 0);
+            const jobPayload = result[1]; 
+            
+            const { charId, originalUrl, force } = JSON.parse(jobPayload);
+            
+            if (charId && originalUrl) {
+                await processCharacter(charId, originalUrl, force || false);
+            } else {
+                console.warn("[Worker] Job malformado descartado:", jobPayload);
+            }
 
-    } catch (err) {
-      // Tratamento de Erro Global do Loop
-      // Evita que o container Docker reinicie (crash) por erros transientes (ex: falha de rede momentânea)
-      console.error("[Worker] Erro crítico no loop de processamento:", err);
-      
-      // Backoff simples: Pausa de 1s antes de reiniciar o loop para evitar "busy loop" em caso de erro persistente
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (err) {
+            console.error("[Worker] Erro crítico no loop:", err);
+            // Backoff para evitar loop de erro rápido
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
     }
-  }
 }
 
-// Inicia o ciclo de vida do Worker
 startWorker();

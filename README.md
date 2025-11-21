@@ -142,5 +142,5 @@ O rolador de dados integrado suporta a seguinte notação:
 
 1.  **Exportação/Importação:** Salvar o estado atual de um card em JSON.
 2.  **Modo Combate:** Sistema de Iniciativa visual, com destaque para o turno atual.
-3.  **Suporte Multi-Sistema:** Implementação do padrão *Adapter* no backend para suportar fichas de D\&D 5e e Tormenta20.
+3.  ~~**Suporte Multi-Sistema:**~~ Implementação do padrão *Adapter* no backend para suportar fichas de D\&D 5e e Tormenta20.
 4.  **Player de Música:** Sincronização de áudio entre clientes conectados na mesma sessão.

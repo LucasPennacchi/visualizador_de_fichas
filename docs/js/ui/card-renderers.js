@@ -1,90 +1,127 @@
 /**
  * @module UI/CardRenderers
- * @description Biblioteca de componentes de visualização (Templates).
- * Exporta funções puras que recebem objetos de dados e retornam strings HTML
- * formatadas (Template Strings), prontas para serem injetadas via `innerHTML`.
- * Responsável pela estrutura visual dos itens de lista (Habilidades, Rituais, Inventário).
+ * @description Biblioteca de Templates HTML para o Modelo Canônico.
+ * Transforma estruturas de dados genéricas (Vitals, Attributes, Sections) em HTML.
+ * Não contém lógica de negócio, apenas lógica de apresentação.
  */
 
-// --- Constantes Exportadas ---
+import { calculatePercentage } from './utils.js';
+
+// --- Constantes ---
+export const placeholder = '<div class="list-placeholder">Vazio</div>';
+
+// --- Renderizadores de Componentes Base ---
 
 /**
- * Template HTML padrão para exibir quando uma lista (array) está vazia.
- * @constant {string}
+ * Renderiza uma barra de recurso vital (Vida, Sanidade, Mana).
+ * Usa CSS Grid/Flexbox para alinhar rótulo, barra e valores.
+ * * @param {Object} vital - Objeto do recurso vital.
+ * @param {string} vital.id - ID único (ex: 'hp').
+ * @param {string} vital.label - Rótulo (ex: 'PV').
+ * @param {number} vital.current - Valor atual.
+ * @param {number} vital.max - Valor máximo.
+ * @param {string} vital.color - Cor hexadecimal da barra.
+ * @returns {string} HTML da barra de status.
  */
-export const placeholder = '<div class="list-placeholder">Nenhum</div>';
-
-// --- Configurações Internas ---
-
-/**
- * Mapa de tradução entre as siglas de atributos da API (Uppercase) 
- * e as chaves internas do objeto de dados (Lowercase).
- * Utilizado para calcular dinamicamente a quantidade de dados de uma perícia.
- * @constant {Object.<string, string>}
- * @private
- */
-const attrMap = { AGI: 'dex', FOR: 'str', VIG: 'con', INT: 'int', PRE: 'pre' };
-
-// --- Funções de Renderização ---
-
-/**
- * Gera o HTML para um item da lista de Perícias.
- * Calcula automaticamente a quantidade de dados (dX) baseada no atributo associado.
- * * @param {Object} skill - Objeto contendo dados da perícia.
- * @param {string} skill.name - Nome da perícia.
- * @param {string} skill.attribute - Sigla do atributo base (ex: "AGI").
- * @param {number|string} skill.bonus - Bônus numérico da perícia.
- * @param {Object} allAttributes - Objeto contendo os valores atuais dos atributos do personagem.
- * @returns {string} String HTML estruturada do item de perícia.
- */
-export const renderSkillItem = (skill, allAttributes) => {
-  const attrKey = attrMap[skill.attribute];
-  // Fallback seguro: se o atributo não existir, assume 0 dados
-  const diceCount = (allAttributes && allAttributes[attrKey]) || 0; 
+export const renderVital = (vital) => {
+  const pct = calculatePercentage(vital.current, vital.max);
   
   return `
-    <div class="skill-item">
-      <span class="skill-name">${skill.name}</span>
-      <span class="skill-value">${diceCount}d20 + ${skill.bonus}</span>
-    </div>`;
+    <div class="vital-row" data-vital-id="${vital.id}">
+      <span class="vital-label" style="color: ${vital.color}">${vital.label}</span>
+      <div class="vital-bar-container">
+        <div class="vital-bar-fill" style="width: ${pct}%; background-color: ${vital.color}"></div>
+      </div>
+      <span class="vital-value">${vital.current}/${vital.max}</span>
+    </div>
+  `;
 };
 
 /**
- * Gera o HTML para um item genérico de lista (usado em Habilidades e Rituais).
- * Cria uma estrutura de "Accordion Aninhado" onde a descrição fica oculta inicialmente.
- * * @param {Object} item - Objeto de dados do item.
- * @param {string} item.name - Título do item.
- * @param {string} [item.description] - Descrição detalhada do item (pode conter HTML sanitizado).
- * @returns {string} String HTML estruturada do item expansível.
+ * Renderiza um atributo principal (ex: FOR, DEX, INT).
+ * @param {Object} attr - Objeto de atributo.
+ * @param {string} attr.id - ID do atributo.
+ * @param {string} attr.label - Sigla do atributo.
+ * @param {string|number} attr.value - Valor principal.
+ * @returns {string} HTML do bloco de atributo.
  */
-export const renderListItem = (item) => `
-  <div class="inner-accordion-item">
-    <div class="inner-accordion-header">${item.name}</div>
-    <div class="inner-accordion-content">
-      <div class="inner-accordion-inner">
-        <p>${item.description || 'Sem descrição.'}</p>
-      </div>
-    </div>
-  </div>`;
+export const renderAttribute = (attr) => `
+  <div class="attr-item" data-attr-id="${attr.id}">
+    <span class="attr-label">${attr.label}</span>
+    <span class="attr-value">${attr.value}</span>
+  </div>
+`;
 
 /**
- * Gera o HTML para um item de Inventário.
- * Similar ao item genérico, mas inclui visualização de "Espaços" (Slots) no cabeçalho.
- * * @param {Object} item - Objeto de dados do item de inventário.
- * @param {string} item.name - Nome do item.
- * @param {string|number} item.slots - Custo de espaço no inventário.
- * @param {string} [item.description] - Descrição detalhada.
- * @returns {string} String HTML estruturada do item de inventário.
+ * Renderiza uma propriedade secundária (ex: Defesa, Deslocamento).
+ * @param {Object} prop - Objeto de propriedade.
+ * @param {string} prop.label - Rótulo.
+ * @param {string|number} prop.value - Valor.
+ * @returns {string} HTML do item de propriedade.
  */
-export const renderInventoryItem = (item) => `
-  <div class="inner-accordion-item">
-    <div class="inner-accordion-header">
-      ${item.name}
-      <span class="item-slots">(Espaços: ${item.slots})</span>
+export const renderProperty = (prop) => `
+  <span class="stat-item">
+    ${prop.label}: <span class="stat-val">${prop.value}</span>
+  </span>
+`;
+
+// --- Renderizadores de Listas (Sections) ---
+
+/**
+ * Renderiza um item genérico dentro de uma lista (Accordion ou Simples).
+ * Lida com etiquetas (tags) e descrições opcionais.
+ * * @param {Object} item - Item da lista.
+ * @param {string} item.label - Nome do item.
+ * @param {string} [item.value] - Valor opcional (ex: dano, bônus).
+ * @param {Array<string>} [item.tags] - Lista de etiquetas curtas.
+ * @param {string} [item.description] - Texto descritivo (pode ser HTML sanitizado).
+ * @returns {string} HTML do item da lista (estilo accordion aninhado).
+ */
+export const renderSectionItem = (item) => {
+  const tagsHtml = (item.tags || []).map(t => `<span class="item-tag">${t}</span>`).join('');
+  const valueHtml = item.value ? `<span class="item-value">${item.value}</span>` : '';
+  const descHtml = item.description ? 
+    `<div class="inner-accordion-content">
+       <div class="inner-accordion-inner"><p>${item.description}</p></div>
+     </div>` : '';
+  
+  // Adiciona classe para cursor pointer apenas se tiver descrição para expandir
+  const headerClass = item.description ? 'inner-accordion-header clickable' : 'inner-accordion-header';
+
+  return `
+    <div class="inner-accordion-item">
+      <div class="${headerClass}">
+        <div class="header-left">
+          <span class="item-name">${item.label}</span>
+          ${valueHtml}
+        </div>
+        <div class="header-right">
+          ${tagsHtml}
+        </div>
+      </div>
+      ${descHtml}
     </div>
-    <div class="inner-accordion-content">
-      <div class="inner-accordion-inner">
-        <p>${item.description || 'Sem descrição.'}</p>
+  `;
+};
+
+/**
+ * Renderiza uma Seção completa (Accordion Pai).
+ * @param {Object} section - Objeto da seção (ex: Inventário, Perícias).
+ * @returns {string} HTML do accordion principal.
+ */
+export const renderSection = (section) => {
+  const itemsHtml = (section.items && section.items.length > 0) 
+    ? section.items.map(renderSectionItem).join('') 
+    : placeholder;
+
+  return `
+    <div class="accordion-item" data-section-id="${section.id}">
+      <div class="accordion-header">${section.title}</div>
+      <div class="accordion-content">
+        <div class="accordion-inner">
+          ${itemsHtml}
+        </div>
       </div>
     </div>
-  </div>`;
+  `;
+};
