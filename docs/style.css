@@ -1,11 +1,14 @@
+/* frontend/style.css */
 @import url("css/base.css");
 @import url("css/header.css");
 @import url("css/grid.css");
 
-/* Importações do card modularizado */
+/* Módulos do Card */
 @import url("css/card/card-base.css");
 @import url("css/card/card-accordion.css");
+@import url("css/card/card-token.css");
 @import url("css/card/card-responsive.css");
 
-/* Importação dos dados */
+/* Módulos de UI */
+@import url("css/combat.css");
 @import url("css/dice-roller.css");

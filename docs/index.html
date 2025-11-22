@@ -15,6 +15,7 @@
         </div>
 
         <div class="controls-content">
+            
             <div class="controls">
                 <input type="text" id="link-input" placeholder="Cole o link ou código do personagem aqui">
                 <button id="add-link-btn">Adicionar Personagem</button>
@@ -23,13 +24,25 @@
             <div class="room-controls">
                 <input type="text" id="room-input" placeholder="Código da Sala (Ex: RPG-123)">
                 <button id="join-room-btn" title="Entrar em uma sala existente">Entrar</button>
-                <button id="create-room-btn" title="Criar uma nova sala com as fichas atuais">Criar Sala</button>
+                <button id="create-room-btn" title="Criar uma nova sala">Criar Sala</button>
                 <button id="leave-room-btn" class="hidden" title="Sair da sala atual">Sair da Sala</button>
+                <button id="start-combat-btn" title="Habilitar modo de combate">⚔️ Combate</button>
             </div>
 
-            <div id="link-list">
+            <div id="combat-controls" class="combat-controls hidden">
+                <div class="combat-info">
+                    <span class="round-counter">Rodada: <span id="combat-round">1</span></span>
+                    <span class="turn-info">Vez de: <strong id="combat-active-name">-</strong></span>
+                </div>
+                <div class="combat-actions">
+                    <button id="combat-prev-btn" title="Voltar Turno">⏪</button>
+                    <button id="combat-next-btn" title="Próximo Turno">⏩</button>
+                    <button id="combat-stop-btn" title="Encerrar Combate">Parar</button>
+                </div>
             </div>
-        </div>
+
+            <div id="link-list"></div>
+            </div>
     </header>
 
     <main id="dashboard-grid">
@@ -76,7 +89,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js" defer></script>
+    <script src="js/lib/sortable.min.js" defer></script>
     <script src="js/main.js" type="module"></script>
 </body>
 </html>

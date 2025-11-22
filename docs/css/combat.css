@@ -1,0 +1,131 @@
+/* frontend/css/combat.css */
+
+/* --- Barra de Ferramentas de Combate (Fixa no Header) --- */
+.combat-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #343a40; /* Fundo Escuro */
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    
+    /* Animação de aparecimento */
+    animation: slideDown 0.3s ease-out;
+}
+
+.combat-controls.hidden {
+    display: none !important;
+}
+
+.combat-info {
+    font-size: 1.1em;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.round-counter {
+    background-color: #495057;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+#combat-active-name {
+    color: #ffc107; /* Dourado */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.combat-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Botões da Barra de Combate */
+.combat-actions button {
+    background-color: #6c757d;
+    border: 1px solid #545b62;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.combat-actions button:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+/* Destaque para Próximo Turno */
+#combat-next-btn {
+    background-color: #28a745;
+    border-color: #1e7e34;
+}
+#combat-next-btn:hover {
+    background-color: #218838;
+}
+
+/* Destaque para Parar */
+#combat-stop-btn {
+    background-color: #dc3545;
+    border-color: #bd2130;
+}
+#combat-stop-btn:hover {
+    background-color: #c82333;
+}
+
+/* --- Botão de Token no Card (+ Ação) --- */
+/* Este estilo sobrescreve ou complementa o card-base.css */
+.card-add-token-btn {
+    position: absolute; 
+    top: 0; 
+    right: 30px; 
+    width: 24px; 
+    height: 24px; 
+    background-color: #28a745; /* Verde */
+    color: white; 
+    border: none; 
+    border-radius: 0 0 4px 4px; /* Arredondado embaixo */
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 18px;
+    line-height: 1;
+    transition: all 0.2s;
+    display: none; /* Oculto por padrão */
+    align-items: center; 
+    justify-content: center;
+    z-index: 5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.card-add-token-btn:hover { 
+    background-color: #218838;
+    height: 28px; /* Efeito de puxar */
+}
+
+/* Regra Global: Só mostra o botão se o body tiver a classe combat-mode */
+body.combat-mode .card-add-token-btn { 
+    display: flex; 
+}
+
+/* --- Destaque do Personagem Ativo --- */
+.character-card.active-turn {
+    border-color: #ffc107 !important;
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.6), 0 0 10px rgba(255, 193, 7, 0.4) inset !important;
+    transform: scale(1.02);
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

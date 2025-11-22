@@ -1,64 +1,31 @@
 /**
  * @module UI/Grid
- * @description Gerencia o contêiner principal do grid (Dashboard), manipulando a criação,
- * remoção e estados dos cards no DOM. Implementa o padrão de "Event Delegation" para
- * lidar com interações de clique de forma performática.
- * * @requires module:UI/Card
+ * @description Gerencia o contêiner principal do grid (Grid/Masonry).
+ * Responsável pela criação e remoção de elementos do DOM, exibição de placeholders
+ * e gerenciamento centralizado de eventos de clique (Event Delegation).
  */
 
 import * as card from './card.js'; 
+import * as combat from './combat.js';
 
 // --- Variáveis do Módulo ---
-
-/**
- * Referência ao elemento DOM principal do grid (#dashboard-grid).
- * @type {HTMLElement|null}
- * @private
- */
 let gridElement = null;
-
-/**
- * Função de callback a ser executada quando uma ação de exclusão é solicitada.
- * @type {DeleteLinkCallback|null}
- * @private
- */
 let onDeleteCallback = null;
-
-/**
- * Definição do callback de deleção.
- * @callback DeleteLinkCallback
- * @param {string} link - O link/ID único do card a ser removido.
- * @returns {void}
- */
 
 // --- Funções Exportadas ---
 
-/**
- * Cria um novo elemento de card vazio e o anexa ao grid.
- * O conteúdo interno deve ser renderizado posteriormente.
- * * @param {string} link - O URL ou ID único que identifica o personagem.
- * @returns {HTMLElement} O elemento <div> do card recém-criado e anexado ao DOM.
- */
-export function createNewCardElement(link) {
+export function createNewCardElement(charId, link) {
   const cardElement = document.createElement('div');
   cardElement.className = 'character-card';
+  cardElement.dataset.charId = charId; 
   cardElement.dataset.link = link; 
   
-  // Garante que o gridElement esteja inicializado antes de usar (fallback de segurança)
   if (!gridElement) gridElement = document.getElementById('dashboard-grid');
-  
   gridElement.appendChild(cardElement);
+  
   return cardElement;
 }
 
-/**
- * Renderiza o estado de erro dentro de um card existente.
- * Substitui todo o conteúdo HTML do card por uma mensagem de erro e botão de remoção.
- * * @param {HTMLElement} cardElement - O elemento DOM do card alvo.
- * @param {object} data - O objeto contendo os detalhes do erro.
- * @param {string} data.originalUrl - O link original que falhou.
- * @param {string} data.error - A mensagem de erro retornada pelo backend.
- */
 export function renderErrorCard(cardElement, data) {
   cardElement.innerHTML = `
     <button class="card-delete-btn" data-link="${data.originalUrl}" title="Remover Personagem">X</button>
@@ -69,82 +36,74 @@ export function renderErrorCard(cardElement, data) {
   cardElement.style.borderColor = '#dc3545';
 }
 
-/**
- * Exibe a mensagem de placeholder no grid quando não há cards.
- * Útil para orientar o usuário no estado inicial (vazio).
- */
 export function showPlaceholder() {
   if (!gridElement) gridElement = document.getElementById('dashboard-grid');
-  gridElement.innerHTML = '<div class="card-placeholder">Adicione links de portrait para começar...</div>';
+  gridElement.innerHTML = '<div class="card-placeholder">Adicione links ou códigos de portrait para começar...</div>';
 }
 
-/**
- * Remove a mensagem de placeholder do grid, se ela existir.
- * Deve ser chamado antes de adicionar o primeiro card.
- */
 export function removePlaceholder() {
   if (!gridElement) gridElement = document.getElementById('dashboard-grid');
   const placeholder = gridElement.querySelector('.card-placeholder');
   if (placeholder) placeholder.remove();
 }
 
-/**
- * Localiza e remove um card específico do DOM baseado no seu atributo data-link.
- * * @param {string} link - O link (URL) identificador do card a ser removido.
- */
-export function removeCard(link) {
+export function removeCard(charId) {
   if (!gridElement) gridElement = document.getElementById('dashboard-grid');
-  const cardToRemove = gridElement.querySelector(`[data-link="${link}"]`);
+  const cardToRemove = gridElement.querySelector(`[data-char-id="${charId}"]`);
   if (cardToRemove) {
     cardToRemove.remove();
   }
 }
 
 /**
- * Inicializa o módulo do grid, capturando a referência do DOM e registrando
- * um único Event Listener centralizado (Event Delegation) para gerenciar
- * todas as interações dos cards (deletar, expandir, accordion).
- * * @param {DeleteLinkCallback} onDelete - Callback invocado quando o botão 'X' é clicado.
+ * Inicializa o grid e configura a Delegação de Eventos.
+ * * @param {function(string): void} onDelete - Callback para a ação de deletar.
  */
 export function initializeGrid(onDelete) {
   gridElement = document.getElementById('dashboard-grid');
   onDeleteCallback = onDelete;
 
-  // Usa Event Delegation: Um único listener no pai gerencia todos os filhos
   gridElement.addEventListener('click', (e) => {
     const target = e.target;
 
-    // 1. Lógica de Deletar (Botão X)
+    // 1. Deletar
     const deleteButton = target.closest('.card-delete-btn');
     if (deleteButton) {
       e.stopPropagation(); 
       const linkToDelete = deleteButton.dataset.link;
-      if (onDeleteCallback) {
-        onDeleteCallback(linkToDelete);
-      }
+      if (onDeleteCallback) onDeleteCallback(linkToDelete);
       return;
     }
 
-    // 2. Lógica: Accordion ANINHADO (Item individual - ex: Habilidade específica)
+    // 2. Adicionar Token
+    const addTokenButton = target.closest('.card-add-token-btn');
+    if (addTokenButton) {
+      e.stopPropagation();
+      const link = addTokenButton.dataset.link;
+      combat.addCombatantToken(link);
+      return;
+    }
+
+    // 3. Accordion Aninhado
     const innerAccordionHeader = target.closest('.inner-accordion-header');
     if (innerAccordionHeader) {
-      e.stopPropagation(); // Impede propagação para o accordion pai ou card
+      e.stopPropagation(); 
       innerAccordionHeader.classList.toggle('active');
       return;
     }
 
-    // 3. Lógica do Accordion PAI (Categorias: Habilidades, Rituais, Inventário, Perícias)
+    // 4. Accordion Pai
     const accordionHeader = target.closest('.accordion-header');
     if (accordionHeader) {
-      e.stopPropagation(); // Impede propagação para a expansão do card
+      e.stopPropagation(); 
       accordionHeader.classList.toggle('active');
       return;
     }
 
-    // 4. Lógica de Expandir o Card (Restante da área clicável)
-    // Ignora se o clique foi na alça de arrastar (drag handle)
-    if (target.closest('.card-drag-handle')) {
-      return;
+    // 5. Expandir Card
+    // Ignora se o clique foi na ZONA DE ARRASTO (permite arrastar sem abrir)
+    if (target.closest('input') || target.closest('button') || target.closest('.card-grab-zone')) {
+        return;
     }
 
     const card = target.closest('.character-card');
