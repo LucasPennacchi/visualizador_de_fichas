@@ -1,23 +1,42 @@
+/* * Estilos do Grid Principal
+ * Define o layout CSS Grid robusto e sem sobreposições.
+ */
+
 #dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  max-width: 1800px; 
-  margin: 0 auto; 	 
-  align-items: start;
+    display: grid;
+    /* Cria colunas responsivas com largura mínima de 240px */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    max-width: 1800px; 
+    margin: 0 auto;
+    
+    /* Alinha ao topo para evitar que cards estiquem verticalmente */
+    align-items: start;
+    /* Centraliza horizontalmente nas colunas */
+    justify-items: center;
 }
 
 .card-placeholder, .card-loading {
-  padding: 20px; background-color: #fff; border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;
-  color: #888; grid-column: 1 / -1;
+    padding: 20px; 
+    background-color: #fff; 
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    text-align: center;
+    color: #888; 
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
 }
 
-/* Estilos do SortableJS (Drag-and-Drop) */
+/* Estilos do SortableJS */
 .sortable-ghost { 
-  opacity: 0.4; 
-  background: #f0f2f5; 
+    opacity: 0.4; 
+    background: #f0f2f5; 
+    /* Força dimensões durante o arrasto */
+    width: 100%;
+    max-width: 240px;
 }
 .sortable-chosen { 
-  cursor: move; 
+    cursor: move; 
 }

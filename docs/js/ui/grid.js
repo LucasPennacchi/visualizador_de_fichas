@@ -1,28 +1,21 @@
 /**
  * @module UI/Grid
- * @description Gerencia o contêiner principal do grid (Grid/Masonry).
- * Responsável pela criação e remoção de elementos do DOM, exibição de placeholders
- * e gerenciamento centralizado de eventos de clique (Event Delegation).
+ * @description Gerencia o contêiner principal do grid.
  */
 
 import * as card from './card.js'; 
 import * as combat from './combat.js';
 
-// --- Variáveis do Módulo ---
 let gridElement = null;
 let onDeleteCallback = null;
-
-// --- Funções Exportadas ---
 
 export function createNewCardElement(charId, link) {
   const cardElement = document.createElement('div');
   cardElement.className = 'character-card';
   cardElement.dataset.charId = charId; 
   cardElement.dataset.link = link; 
-  
   if (!gridElement) gridElement = document.getElementById('dashboard-grid');
   gridElement.appendChild(cardElement);
-  
   return cardElement;
 }
 
@@ -47,9 +40,9 @@ export function removePlaceholder() {
   if (placeholder) placeholder.remove();
 }
 
-export function removeCard(charId) {
+export function removeCard(link) {
   if (!gridElement) gridElement = document.getElementById('dashboard-grid');
-  const cardToRemove = gridElement.querySelector(`[data-char-id="${charId}"]`);
+  const cardToRemove = gridElement.querySelector(`.character-card[data-link="${link}"]:not(.action-token)`);
   if (cardToRemove) {
     cardToRemove.remove();
   }
@@ -57,7 +50,8 @@ export function removeCard(charId) {
 
 /**
  * Inicializa o grid e configura a Delegação de Eventos.
- * * @param {function(string): void} onDelete - Callback para a ação de deletar.
+ * Centraliza todos os cliques do grid em um único listener para performance e manutenibilidade.
+ * * @param {function(string): void} onDelete - Callback para a ação de deletar (Card Principal).
  */
 export function initializeGrid(onDelete) {
   gridElement = document.getElementById('dashboard-grid');
@@ -66,16 +60,35 @@ export function initializeGrid(onDelete) {
   gridElement.addEventListener('click', (e) => {
     const target = e.target;
 
-    // 1. Deletar
+    // 1. Ação: Deletar (Botão X)
     const deleteButton = target.closest('.card-delete-btn');
     if (deleteButton) {
       e.stopPropagation(); 
+      
+      const cardElement = deleteButton.closest('.character-card');
+      
+      // --- LÓGICA DE REMOÇÃO DIFERENCIADA ---
+      // Verifica se o elemento é um Token de Ação (Mini-card de combate)
+      if (cardElement && cardElement.classList.contains('action-token')) {
+          // Descobre o índice visual deste token no grid
+          const allCards = Array.from(gridElement.children).filter(el => el.classList.contains('character-card'));
+          const index = allCards.indexOf(cardElement);
+          
+          if (index > -1) {
+              // Remove apenas o token da lista de combate
+              combat.removeCombatantByIndex(index);
+          }
+          return; // Impede que a deleção "vaze" para o card principal
+      }
+      // --------------------------------------
+
+      // Se não for token, é um Card Principal: deleta o personagem do sistema
       const linkToDelete = deleteButton.dataset.link;
       if (onDeleteCallback) onDeleteCallback(linkToDelete);
       return;
     }
 
-    // 2. Adicionar Token
+    // 2. Ação: Adicionar Token de Combate (Botão +)
     const addTokenButton = target.closest('.card-add-token-btn');
     if (addTokenButton) {
       e.stopPropagation();
@@ -84,24 +97,26 @@ export function initializeGrid(onDelete) {
       return;
     }
 
-    // 3. Accordion Aninhado
+    // 3. Ação: Alternar Accordion Aninhado (Item)
     const innerAccordionHeader = target.closest('.inner-accordion-header');
     if (innerAccordionHeader) {
       e.stopPropagation(); 
       innerAccordionHeader.classList.toggle('active');
+      gridElement.dispatchEvent(new CustomEvent('layout-change', { bubbles: true }));
       return;
     }
 
-    // 4. Accordion Pai
+    // 4. Ação: Alternar Accordion Pai (Categoria)
     const accordionHeader = target.closest('.accordion-header');
     if (accordionHeader) {
       e.stopPropagation(); 
       accordionHeader.classList.toggle('active');
+      gridElement.dispatchEvent(new CustomEvent('layout-change', { bubbles: true }));
       return;
     }
 
-    // 5. Expandir Card
-    // Ignora se o clique foi na ZONA DE ARRASTO (permite arrastar sem abrir)
+    // 5. Ação: Expandir Card (Clique no corpo)
+    // Ignora cliques em inputs, botões ou na área de arrasto
     if (target.closest('input') || target.closest('button') || target.closest('.card-grab-zone')) {
         return;
     }
@@ -109,6 +124,7 @@ export function initializeGrid(onDelete) {
     const card = target.closest('.character-card');
     if (card) {
       card.classList.toggle('card-expanded');
+      gridElement.dispatchEvent(new CustomEvent('layout-change', { bubbles: true }));
     }
   });
 }

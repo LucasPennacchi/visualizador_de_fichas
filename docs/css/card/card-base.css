@@ -7,7 +7,7 @@
     background-color: #fff;
     border: 1px solid #e0e0e0; 
     border-radius: 8px;
-    padding: 0; /* Padding removido para a Grab Zone ocupar a largura total */
+    padding: 0; 
     box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
     transition: all 0.2s ease-in-out;
     position: relative;
@@ -19,13 +19,28 @@
     margin-bottom: 20px; 
     box-sizing: border-box; 
     cursor: pointer; 
-    overflow: hidden; /* Garante que a Grab Zone respeite o border-radius */
+    overflow: hidden;
+
+    /* Bloqueia seleção de texto ao arrastar */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .character-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 15px rgba(0,0,0,0.1);
     border-color: #d0d0d0;
+}
+
+/* Previne que imagens sejam arrastadas como arquivos pelo navegador */
+.character-card img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    pointer-events: none; /* Garante que cliques passem para o card */
 }
 
 /* --- ZONA DE ARRASTO (Barra de Título) --- */
@@ -36,6 +51,8 @@
     border-bottom: none;
     cursor: grab;
     transition: background-color 0.2s;
+    position: relative;
+    z-index: 10; /* Garante que esteja acima de outros elementos */
 }
 
 .card-grab-zone:hover {

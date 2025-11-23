@@ -1,24 +1,11 @@
 /**
  * @module UI/Card
- * @description Gerenciador de Cards Genéricos e Tokens de Combate.
- * Responsável por transformar os dados normalizados (Modelo Canônico) em elementos HTML visuais.
- * Implementa a estrutura de "Window-like" com uma barra de título para arrastar (Grab Zone)
- * e conteúdo interno protegido por padding.
- * * @requires module:UI/Utils
- * @requires module:UI/CardRenderers
+ * @description Gerencia a renderização visual dos cards e tokens.
  */
 
 import * as utils from './utils.js';
 import * as renderers from './card-renderers.js';
 
-// --- Funções Exportadas ---
-
-/**
- * Gera e injeta o HTML inicial para um card de personagem PRINCIPAL (Ficha Completa).
- * Configura a estrutura com zona de arrasto dedicada e contêiner de conteúdo.
- * * @param {HTMLElement} cardElement - O elemento `div` vazio que servirá de contêiner.
- * @param {Object} data - O objeto de dados do personagem no formato Canônico.
- */
 export function renderNewCardHTML(cardElement, data) {
   const header = data.header || { name: 'Desconhecido', description: '' };
   const vitals = data.vitals || [];
@@ -40,12 +27,12 @@ export function renderNewCardHTML(cardElement, data) {
   const propertiesHtml = properties.map(renderers.renderProperty).join('');
   const sectionsHtml = sections.map(renderers.renderSection).join('');
 
-  // Template HTML com Grab Zone e Inner Content
   cardElement.innerHTML = `
-    <div class="card-grab-zone" title="Segure aqui para arrastar"></div>
+    <div class="card-grab-zone" title="Arraste para mover"></div>
 
     <div class="card-inner-content">
         <button class="card-delete-btn" data-link="${data.meta?.sourceUrl || '#'}" title="Remover">X</button>
+        
         <button class="card-add-token-btn" data-link="${data.meta?.sourceUrl || '#'}" title="Adicionar Ação Extra">+</button>
         
         <div class="card-header">
@@ -66,12 +53,6 @@ export function renderNewCardHTML(cardElement, data) {
   `;
 }
 
-/**
- * Renderiza o HTML de um TOKEN DE AÇÃO (Mini-Card).
- * Mantém a consistência visual com o card principal usando a mesma Grab Zone.
- * * @param {HTMLElement} cardElement - O elemento container do token.
- * @param {Object} data - O objeto de dados do personagem.
- */
 export function renderTokenHTML(cardElement, data) {
   const header = data.header || { name: 'Token', description: '' };
   
@@ -82,7 +63,7 @@ export function renderTokenHTML(cardElement, data) {
     : `<div class="token-portrait" style="background:#ddd" data-field="portrait">?</div>`;
 
   cardElement.innerHTML = `
-    <div class="card-grab-zone" title="Segure aqui para arrastar"></div>
+    <div class="card-grab-zone" title="Arraste para mover"></div>
     
     <div class="card-inner-content">
         <button class="card-delete-btn" data-link="${data.meta?.sourceUrl || '#'}" title="Remover">X</button>
@@ -98,12 +79,6 @@ export function renderTokenHTML(cardElement, data) {
   `;
 }
 
-/**
- * Atualiza os dados de um card existente no DOM de forma reativa.
- * Identifica automaticamente se o elemento alvo é um Card Principal ou um Token.
- * * @param {HTMLElement} cardElement - O elemento DOM a ser atualizado.
- * @param {Object} data - O objeto com os novos dados do personagem.
- */
 export function updateExistingCard(cardElement, data) {
   const header = data.header || {};
   

@@ -1,9 +1,8 @@
 /**
  * @module UI/Combat
  * @description Gerencia o estado e a lógica do Modo de Combate.
- * Controla a ordem de iniciativa baseada puramente na posição visual (Drag-and-Drop),
- * contagem de rodadas, gerenciamento de turnos ativos, criação de Tokens de ação extra
- * e a sincronização visual do estado recebido do servidor.
+ * Responsável pela interface de controle, gerenciamento da lista de iniciativa,
+ * criação/remoção de Tokens e sincronização visual.
  * * @requires module:API
  */
 
@@ -60,34 +59,38 @@ export function initializeCombat() {
     stopBtn = document.getElementById('combat-stop-btn');
     startBtn = document.getElementById('start-combat-btn');
 
-    // Registra Listeners que disparam ações de rede
     if (nextBtn) nextBtn.addEventListener('click', emitNextTurn);
     if (prevBtn) prevBtn.addEventListener('click', emitPrevTurn);
     if (stopBtn) stopBtn.addEventListener('click', emitStopCombat);
     if (startBtn) startBtn.addEventListener('click', emitStartCombat);
+
+    // Atalhos de teclado
+    document.addEventListener('keydown', (e) => {
+        if (!localState.isActive) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.key === 'ArrowRight') { e.preventDefault(); emitNextTurn(); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); emitPrevTurn(); }
+    });
 }
 
 /**
  * Adiciona um Token de Ação Extra para um personagem específico.
  * Cria uma nova entrada na lista de combatentes e sincroniza com o servidor.
- * O Token é inserido ao final da ordem atual.
  * * @param {string} link - O identificador (URL) do personagem original.
  */
 export function addCombatantToken(link) {
     if (!localState.isActive) return;
 
-    // Busca o card principal para extrair o nome e usar como referência visual
     const parentCard = document.querySelector(`.character-card[data-link="${link}"]:not(.action-token)`);
     const name = parentCard ? parentCard.querySelector('[data-field="name"]')?.innerText : "Token";
 
-    // Cria objeto do Token
     const newToken = {
         link: link,
         name: name,
         isToken: true
     };
 
-    // Atualiza estado local e propaga
     const newState = { ...localState };
     newState.combatants.push(newToken);
 
@@ -95,9 +98,73 @@ export function addCombatantToken(link) {
 }
 
 /**
+ * Remove um combatente específico baseado no seu índice visual na grade.
+ * Usado para deletar Tokens individuais sem afetar o personagem principal.
+ * * @param {number} index - O índice do card no grid.
+ */
+export function removeCombatantByIndex(index) {
+    if (!localState.isActive) return;
+
+    const newState = { ...localState };
+    
+    // Remove o item do array
+    newState.combatants.splice(index, 1);
+
+    // Ajusta o ponteiro de turno se necessário
+    if (index < newState.turnIndex) {
+        newState.turnIndex--;
+    } else if (index === newState.turnIndex) {
+        // Se removeu quem estava agindo, o turno passa para o próximo
+        if (newState.turnIndex >= newState.combatants.length) {
+            newState.turnIndex = 0;
+            newState.round++;
+        }
+    }
+
+    api.updateCombatState(newState);
+}
+
+/**
+ * Remove TODOS os combatentes (Principal e Tokens) associados a um link.
+ * Usado quando o card principal é excluído do sistema.
+ * * @param {string} link - O link do personagem excluído.
+ */
+export function removeCombatantByLink(link) {
+    if (localState.combatants.length === 0) return;
+
+    const newState = { ...localState };
+    
+    // Filtra removendo tudo que tiver esse link
+    const filteredList = newState.combatants.filter(c => c.link !== link);
+    
+    if (filteredList.length === newState.combatants.length) return;
+
+    newState.combatants = filteredList;
+    
+    // Reseta turno se ficar inválido
+    if (newState.turnIndex >= newState.combatants.length) {
+        newState.turnIndex = -1;
+    }
+
+    api.updateCombatState(newState);
+}
+
+/**
+ * Atualiza a ordem dos combatentes baseada na disposição atual do DOM.
+ * Deve ser chamada quando o usuário realiza uma ação de Drag-and-Drop no Grid.
+ */
+export function updateOrderFromDOM() {
+    if (!localState.isActive) return;
+    
+    const newState = { ...localState };
+    newState.combatants = getCombatantsFromDOM(); 
+    
+    api.updateCombatState(newState);
+}
+
+/**
  * Recebe o estado atualizado do servidor e sincroniza a interface.
  * É o ponto único de verdade ("Source of Truth") para a renderização do combate.
- * Gerencia a visibilidade da UI, a reordenação do Grid e o destaque do turno.
  * * @param {Object} serverState - O estado do combate vindo do servidor.
  */
 export function handleCombatSync(serverState) {
@@ -107,77 +174,53 @@ export function handleCombatSync(serverState) {
     localState = serverState;
 
     if (localState.isActive) {
-        // 1. Ativa modo visual de combate
         document.body.classList.add('combat-mode');
         if (controlsEl) controlsEl.classList.remove('hidden');
         
-        // 2. Sincroniza a ordem visual dos cards com o estado do servidor
+        // Sincroniza a ordem visual dos cards com o estado do servidor
         if (localState.combatants && localState.combatants.length > 0) {
              reorderDomByState(localState.combatants);
         }
 
-        // 3. Atualiza feedback de turno e rodada
         highlightCurrentTurn();
         updateDisplay();
     } else {
-        // Desativa modo de combate e limpa a UI
         document.body.classList.remove('combat-mode');
         if (controlsEl) controlsEl.classList.add('hidden');
         clearHighlights();
         
-        // Remove tokens visuais ao sair do combate
         document.querySelectorAll('.action-token').forEach(el => el.remove());
     }
 }
 
 // --- Emissores de Ação (Calculam Próximo Estado -> API) ---
 
-/**
- * Inicia o combate.
- * Captura a ordem atual dos cards no DOM como a ordem inicial de iniciativa.
- */
 function emitStartCombat() {
     const newState = { ...localState };
     newState.isActive = true;
     newState.round = 1;
     newState.turnIndex = -1;
-    
-    // A "verdade" inicial é a ordem visual que o mestre definiu antes de clicar em iniciar
     newState.combatants = getCombatantsFromDOM();
-    
     api.updateCombatState(newState);
 }
 
-/**
- * Encerra o combate e limpa o estado no servidor.
- */
 function emitStopCombat() {
     const newState = { ...localState };
     newState.isActive = false;
     newState.turnIndex = -1;
     newState.combatants = [];
-    
     api.updateCombatState(newState);
 }
 
-/**
- * Avança para o próximo turno.
- * Recaptura a ordem do DOM antes de calcular, permitindo que o mestre
- * reordene (arraste) cards durante o combate e o "próximo" respeite a nova ordem.
- */
 function emitNextTurn() {
     if (!localState.isActive) return;
-    
     const newState = { ...localState };
-    
-    // Atualiza lista baseada no DOM atual (Sync dinâmico)
     newState.combatants = getCombatantsFromDOM();
 
     if (newState.combatants.length === 0) return;
 
     newState.turnIndex++;
 
-    // Lógica de virada de rodada
     if (newState.turnIndex >= newState.combatants.length) {
         newState.turnIndex = 0;
         newState.round++;
@@ -186,38 +229,27 @@ function emitNextTurn() {
     api.updateCombatState(newState);
 }
 
-/**
- * Retorna ao turno anterior.
- * Também recaptura a ordem do DOM e gerencia o decremento de rodada.
- */
 function emitPrevTurn() {
     if (!localState.isActive) return;
-
     const newState = { ...localState };
     newState.combatants = getCombatantsFromDOM();
 
     newState.turnIndex--;
 
-    // Lógica de retorno de rodada
     if (newState.turnIndex < 0) {
         if (newState.round > 1) {
             newState.round--;
             newState.turnIndex = newState.combatants.length - 1;
         } else {
-            newState.turnIndex = 0; // Trava no início da rodada 1
+            newState.turnIndex = 0;
         }
     }
 
     api.updateCombatState(newState);
 }
 
-// --- Helpers Internos (DOM e Lógica Visual) ---
+// --- Helpers Internos ---
 
-/**
- * Varre o DOM para reconstruir o array de estado dos combatentes baseado na ordem visual atual.
- * Identifica se um card é Principal ou Token.
- * * @returns {Array<Object>} Lista atual de combatentes na ordem visual.
- */
 function getCombatantsFromDOM() {
     const cards = document.querySelectorAll('.character-card');
     return Array.from(cards).map(card => {
@@ -230,27 +262,19 @@ function getCombatantsFromDOM() {
     });
 }
 
-/**
- * Reconstrói a ordem visual do Grid baseada na lista do servidor.
- * Responsável por mover cards existentes e criar elementos HTML para Tokens
- * que ainda não existem no DOM local.
- * * @param {Array<Object>} combatantsList - Lista ordenada de combatentes vinda do servidor.
- */
 function reorderDomByState(combatantsList) {
     const grid = document.getElementById('dashboard-grid');
-    
-    // Mapeia cards principais existentes para reutilização
     const existingMainCards = Array.from(grid.querySelectorAll('.character-card:not(.action-token)'));
     
     // Estratégia de Limpeza: Remove tokens antigos para evitar duplicação/desincronia
     grid.querySelectorAll('.action-token').forEach(el => el.remove());
 
-    combatantsList.forEach(combatant => {
+    combatantsList.forEach((combatant, index) => {
+        let cardNode = null;
+
         if (combatant.isToken) {
-            // --- Lógica de Renderização de Token ---
-            // Busca dados visuais (imagem) do card principal correspondente
+            // Criação de Token
             const mainCard = existingMainCards.find(c => c.dataset.link === combatant.link);
-            
             if (mainCard) {
                 const tokenElement = document.createElement('div');
                 tokenElement.className = 'character-card action-token';
@@ -258,10 +282,8 @@ function reorderDomByState(combatantsList) {
                 
                 const imgSrc = mainCard.querySelector('.card-portrait-img')?.src || '';
                 
-                // HTML do Token (Compatível com design Window-like e Grab Zone)
                 tokenElement.innerHTML = `
                     <div class="card-grab-zone" title="Segure aqui para arrastar"></div>
-                    
                     <div class="card-inner-content">
                         <button class="card-delete-btn" data-link="${combatant.link}" title="Remover">X</button>
                         <div class="token-layout">
@@ -273,56 +295,46 @@ function reorderDomByState(combatantsList) {
                         </div>
                     </div>
                 `;
-                grid.appendChild(tokenElement);
+                cardNode = tokenElement;
             }
         } else {
-            // --- Lógica de Card Principal ---
-            // Apenas move o elemento existente para a nova posição no Grid
-            const card = existingMainCards.find(c => c.dataset.link === combatant.link);
-            if (card) {
-                grid.appendChild(card);
+            // Recuperação de Card Principal
+            cardNode = existingMainCards.find(c => c.dataset.link === combatant.link);
+        }
+
+        // Lógica de "Dirty Checking" para inserção segura no DOM
+        if (cardNode) {
+            const currentElementAtPosition = grid.children[index];
+            if (currentElementAtPosition !== cardNode) {
+                if (currentElementAtPosition) {
+                    grid.insertBefore(cardNode, currentElementAtPosition);
+                } else {
+                    grid.appendChild(cardNode);
+                }
             }
         }
     });
 }
 
-/**
- * Aplica o destaque visual (classe CSS) ao(s) personagem(ns) do turno atual.
- * Destaca todos os cards (Main + Tokens) que compartilham o mesmo link do combatente ativo.
- */
 function highlightCurrentTurn() {
     clearHighlights();
-    
-    const currentCombatant = localState.combatants[localState.turnIndex];
-    if (!currentCombatant) {
+    const current = localState.combatants[localState.turnIndex];
+    if (!current) {
         if (activeNameDisplay) activeNameDisplay.innerText = "-";
         return;
     }
-
-    // Seleciona todos os elementos DOM que correspondem ao ID do personagem ativo
-    const targets = document.querySelectorAll(`[data-link="${currentCombatant.link}"]`);
-    
+    const targets = document.querySelectorAll(`[data-link="${current.link}"]`);
     targets.forEach(el => {
         el.classList.add('active-turn');
-        // Scroll suave apenas para o primeiro elemento encontrado (evita pulos)
-        if (el === targets[0]) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        if (el === targets[0]) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-
-    if (activeNameDisplay) activeNameDisplay.innerText = currentCombatant.name;
+    if (activeNameDisplay) activeNameDisplay.innerText = current.name;
 }
 
-/**
- * Remove o destaque visual de todos os cards do grid.
- */
 function clearHighlights() {
     document.querySelectorAll('.active-turn').forEach(el => el.classList.remove('active-turn'));
 }
 
-/**
- * Atualiza os displays de informação (contador de rodadas) na barra de ferramentas.
- */
 function updateDisplay() {
     if (roundDisplay) roundDisplay.innerText = localState.round;
 }

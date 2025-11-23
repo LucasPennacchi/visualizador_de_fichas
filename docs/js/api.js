@@ -2,7 +2,8 @@
  * @module API
  * @description Gerencia a camada de comunicação em tempo real (WebSocket) entre o Cliente e o Gateway.
  * Responsável por estabelecer a conexão, gerenciar reconexões automáticas, rotear mensagens recebidas
- * para os callbacks apropriados e enviar comandos de controle (inscrição, gestão de salas).
+ * para os callbacks apropriados e enviar comandos de controle (Inscrição, Salas, Combate).
+ * Implementa também lógica de "Loopback" para funcionalidades que devem operar offline (Modo Solo).
  */
 
 // --- Variáveis de Estado do Módulo ---
@@ -10,24 +11,18 @@
 /** @type {WebSocket|null} Instância ativa do socket */
 let socket = null;
 
-/** @type {function(Array<Object>): void|null} Callback para dados de fichas */
+// Callbacks registrados
 let onDataUpdateCallback = null;
-
-/** @type {function(Array<string>): void|null} Callback para sincronização de links */
 let onRoomSyncCallback = null;
-
-/** @type {function(string): void|null} Callback para sucesso na entrada de sala */
 let onRoomJoinedCallback = null;
-
-/** @type {function(Object): void|null} Callback para erros de sala */
 let onRoomErrorCallback = null;
+let onCombatSyncCallback = null;
 
 // --- Funções Auxiliares ---
 
 /**
  * Determina a URL do endpoint WebSocket baseada nos parâmetros da URL atual.
- * Permite alternar entre ambiente local e produção (túnel) via query param '?ws='.
- * @returns {string} A URL completa do WebSocket (ws:// ou wss://).
+ * @returns {string} A URL completa do WebSocket.
  */
 function getWebSocketUrl() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -46,18 +41,19 @@ function getWebSocketUrl() {
 
 /**
  * Inicializa a conexão WebSocket e registra os listeners de eventos.
- * Implementa lógica de tolerância a falhas com reconexão automática.
- * * @param {function(Array<Object>)} onDataUpdate - Handler para recebimento de dados de fichas.
- * @param {function()} onOpen - Handler para evento de conexão estabelecida.
- * @param {function(Array<string>)} onRoomSync - Handler para recebimento de lista de links sincronizada.
- * @param {function(string)} onRoomJoined - Handler para confirmação de entrada na sala (recebe o ID).
- * @param {function(Object)} onRoomError - Handler para erros operacionais de sala.
+ * * @param {function} onDataUpdate - Handler para dados de fichas.
+ * @param {function} onOpen - Handler para conexão estabelecida.
+ * @param {function} onRoomSync - Handler para sincronização de lista da sala.
+ * @param {function} onRoomJoined - Handler para confirmação de entrada na sala.
+ * @param {function} onRoomError - Handler para erros operacionais de sala.
+ * @param {function} onCombatSync - Handler para atualizações de estado de combate.
  */
-export function connect(onDataUpdate, onOpen, onRoomSync, onRoomJoined, onRoomError) {
+export function connect(onDataUpdate, onOpen, onRoomSync, onRoomJoined, onRoomError, onCombatSync) {
   onDataUpdateCallback = onDataUpdate;
   onRoomSyncCallback = onRoomSync;
   onRoomJoinedCallback = onRoomJoined;
   onRoomErrorCallback = onRoomError;
+  onCombatSyncCallback = onCombatSync;
   
   const WSS_URL = getWebSocketUrl();
   
@@ -70,16 +66,14 @@ export function connect(onDataUpdate, onOpen, onRoomSync, onRoomJoined, onRoomEr
     if (onOpen) onOpen();
   };
 
-  // 2. Recebimento de Mensagens
+  // 2. Roteamento de Mensagens (Ingress)
   socket.onmessage = (event) => {
     try {
       const message = JSON.parse(event.data);
       
       switch (message.type) {
         case 'DATA_UPDATE':
-          if (message.payload && onDataUpdateCallback) {
-            onDataUpdateCallback(message.payload);
-          }
+          if (message.payload && onDataUpdateCallback) onDataUpdateCallback(message.payload);
           break;
           
         case 'ROOM_SYNC':
@@ -102,6 +96,12 @@ export function connect(onDataUpdate, onOpen, onRoomSync, onRoomJoined, onRoomEr
             onRoomErrorCallback(message.payload);
           }
           break;
+
+        case 'COMBAT_SYNC':
+          if (message.payload && onCombatSyncCallback) {
+            onCombatSyncCallback(message.payload);
+          }
+          break;
       }
 
     } catch (e) {
@@ -113,21 +113,19 @@ export function connect(onDataUpdate, onOpen, onRoomSync, onRoomJoined, onRoomEr
   socket.onclose = () => {
     console.warn('[WebSocket] Desconectado. Tentando reconectar em 5 segundos...');
     socket = null;
-    // Agenda reconexão mantendo os mesmos handlers
-    setTimeout(() => connect(onDataUpdate, onOpen, onRoomSync, onRoomJoined, onRoomError), 5000);
+    setTimeout(() => connect(onDataUpdate, onOpen, onRoomSync, onRoomJoined, onRoomError, onCombatSync), 5000);
   };
 
   // 4. Erro de Rede
   socket.onerror = (err) => {
     console.error('[WebSocket] Erro:', err);
-    if (socket) socket.close(); // Força o fechamento para disparar 'onclose' e reconectar
+    if (socket) socket.close();
   };
 }
 
 /**
  * Envia solicitação de inscrição em uma lista de links.
- * Usado no modo solo para atualizar o servidor sobre os links locais.
- * * @param {Array<string>} links - Lista de URLs a serem monitoradas.
+ * @param {Array<string>} links - Lista de URLs a serem monitoradas.
  */
 export function subscribeToLinks(links) {
   if (socket && socket.readyState === socket.OPEN) {
@@ -140,9 +138,8 @@ export function subscribeToLinks(links) {
 
 /**
  * Envia comando para entrar em uma sala existente.
- * Envia também os links atuais do usuário para realizar o merge no servidor.
- * * @param {string} roomId - O código identificador da sala.
- * @param {Array<string>} currentLinks - Links locais do usuário.
+ * @param {string} roomId - O código identificador da sala.
+ * @param {Array<string>} currentLinks - Links locais do usuário para merge.
  */
 export function joinRoom(roomId, currentLinks) {
   if (socket && socket.readyState === socket.OPEN) {
@@ -156,8 +153,7 @@ export function joinRoom(roomId, currentLinks) {
 
 /**
  * Envia comando para criar uma nova sala.
- * A sala será inicializada com os links atuais do usuário.
- * * @param {Array<string>} currentLinks - Links iniciais para a nova sala.
+ * @param {Array<string>} currentLinks - Links iniciais para a nova sala.
  */
 export function createRoom(currentLinks) {
   if (socket && socket.readyState === socket.OPEN) {
@@ -171,8 +167,7 @@ export function createRoom(currentLinks) {
 
 /**
  * Envia comando para remover um link específico da sala atual.
- * Necessário pois o comando JOIN_ROOM realiza apenas adições (Merge).
- * * @param {string} roomId - O ID da sala onde a remoção deve ocorrer.
+ * @param {string} roomId - O ID da sala.
  * @param {string} link - O link completo a ser removido.
  */
 export function removeLinkFromRoom(roomId, link) {
@@ -187,7 +182,6 @@ export function removeLinkFromRoom(roomId, link) {
 
 /**
  * Envia comando para sair da sala atual.
- * O servidor removerá este cliente da lista de membros da sala.
  */
 export function leaveRoom() {
   if (socket && socket.readyState === socket.OPEN) {
@@ -195,5 +189,37 @@ export function leaveRoom() {
     socket.send(JSON.stringify({ 
       type: 'LEAVE_ROOM' 
     }));
+  }
+}
+
+/**
+ * Sincroniza o estado do combate.
+ * Implementa lógica de "Loopback Local" (Offline First):
+ * Se o usuário não estiver em uma sala (Modo Solo), a função retorna o estado imediatamente
+ * para a própria aplicação sem passar pela rede, permitindo uso offline da ferramenta de combate.
+ * * @param {Object} combatState - O objeto de estado do combate.
+ */
+export function updateCombatState(combatState) {
+  // Verificação direta do storage para determinar o modo de operação
+  const isInRoom = localStorage.getItem('gm_dashboard_room_id'); 
+  
+  // Verifica se estamos ONLINE E em uma SALA válida
+  const isOnlineInRoom = isInRoom && socket && socket.readyState === WebSocket.OPEN;
+
+  if (isOnlineInRoom) {
+    // Modo Multiplayer: Envia para o servidor para broadcast
+    console.log("[API] Enviando estado de combate para o servidor...");
+    socket.send(JSON.stringify({ 
+      type: 'COMBAT_UPDATE', 
+      payload: combatState 
+    }));
+  } else {
+    // Modo Solo: Simula o evento 'COMBAT_SYNC' localmente
+    console.log('[API] Modo Solo: Loopback de combate local.');
+    if (onCombatSyncCallback) {
+        onCombatSyncCallback(combatState);
+    } else {
+        console.error("[API] Erro: Callback de combate não registrado.");
+    }
   }
 }

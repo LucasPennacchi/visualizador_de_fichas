@@ -1,3 +1,5 @@
+/* frontend/css/header.css */
+
 header {
     background-color: #fff;
     padding: 15px 20px;
@@ -10,14 +12,12 @@ header {
     box-sizing: border-box;     
 }
 
-/* Linha de Controles (Fichas e Sala) */
 .controls, .room-controls {
     display: flex;
     gap: 10px;
     margin-bottom: 12px;
 }
 
-/* Inputs Gerais */
 #link-input, #room-input {
     flex-grow: 1;
     padding: 10px;
@@ -25,12 +25,11 @@ header {
     border-radius: 5px;
 }
 
-/* Estado Bloqueado (Quando em sala) */
 #room-input:disabled {
     background-color: #e9ecef;
     color: #555;
     font-weight: bold;
-    /* cursor: not-allowed; */
+    cursor: not-allowed;
     border-color: #ced4da;
 }
 
@@ -42,7 +41,7 @@ header {
     background-color: #0056b3;
 }
 
-/* Botão de Sair (Vermelho) */
+/* Botão de Sair */
 #leave-room-btn {
     background-color: #dc3545;
 }
@@ -50,7 +49,17 @@ header {
     background-color: #c82333;
 }
 
-/* Classe utilitária para esconder elementos */
+/* Botão de Combate (Roxo) */
+#start-combat-btn {
+    background-color: #6f42c1;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+#start-combat-btn:hover {
+    background-color: #59359a;
+}
+
 .hidden {
     display: none !important;
 }
@@ -69,7 +78,6 @@ header {
     font-size: 12px;
 }
 
-/* Estilos do Header Minim-vel */
 .header-top {
     display: flex; 
     justify-content: space-between;
