@@ -12,6 +12,8 @@ export function renderNewCardHTML(cardElement, data) {
   const attributes = data.attributes || [];
   const properties = data.properties || [];
   const sections = data.sections || [];
+  // Pega o ID puro (sem URL) para passar para o script
+  const rawId = data.meta?.characterId || '';
 
   if (header.borderColor) {
       cardElement.style.borderColor = header.borderColor;
@@ -35,6 +37,8 @@ export function renderNewCardHTML(cardElement, data) {
         
         <button class="card-add-token-btn" data-link="${data.meta?.sourceUrl || '#'}" title="Adicionar Ação Extra">+</button>
         
+        <button class="card-beta-btn" data-char-id="${rawId}" title="Copiar Script de Importação (CRIS)">⚡</button>
+
         <div class="card-header">
           ${pictureHtml}
           <div class="card-title">

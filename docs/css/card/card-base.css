@@ -256,3 +256,35 @@
     color: #2b8a3e;
 }
 body.combat-mode .card-add-token-btn { display: flex; }
+
+/* Botão BETA de Importação (Script) */
+.card-beta-btn {
+    position: absolute; 
+    bottom: 5px; 
+    left: 5px;   
+    width: 24px; 
+    height: 24px; 
+    background-color: #6f42c1; /* Roxo para indicar especial/beta */
+    color: white; 
+    border: none; 
+    border-radius: 4px;
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 14px;
+    line-height: 1;
+    transition: all 0.2s;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    z-index: 5;
+    opacity: 0.3;
+}
+
+.character-card:hover .card-beta-btn {
+    opacity: 1;
+}
+
+.card-beta-btn:hover {
+    background-color: #59359a;
+    transform: scale(1.1);
+}

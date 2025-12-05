@@ -101,32 +101,6 @@ https://seu-usuario.github.io/visualizador_de_fichas/?ws=xxxx-xxxx.ngrok-free.ap
 
 -----
 
-## Estrutura de Pastas
-
-```
-/
-├── docker-compose.yml          # Orquestração dos contêineres
-├── services/                   # Microserviços do Backend
-│   ├── servico-gateway/        # API Gateway & WebSocket
-│   ├── servico-scheduler/      # Agendador de Tarefas
-│   └── servico-poller/         # Worker de Busca de Dados
-└── frontend/                   # Aplicação Cliente (Static)
-    ├── css/                    # Estilos modulares
-    │   ├── card/               # Estilos específicos dos cards
-    │   └── ...
-    ├── js/
-    │   ├── lib/                # Bibliotecas externas locais
-    │   ├── ui/                 # Módulos de Interface
-    │   │   ├── dice-roller/    # Módulo completo de dados
-    │   │   └── ...
-    │   ├── api.js              # Camada de Rede
-    │   ├── main.js             # Entry Point
-    │   └── store.js            # Gerenciamento de Estado Local
-    └── index.html
-```
-
------
-
 ## Uso do Rolador de Dados
 
 O rolador de dados integrado suporta a seguinte notação:
@@ -136,11 +110,3 @@ O rolador de dados integrado suporta a seguinte notação:
   * **Desvantagem:** Selecione "Desvantagem" na UI. O sistema converte `1d20` automaticamente para `2d20kl1` (Rola 2, mantém o menor 1).
   * **Matemática:** `(1d8 + 3) * 2` (Dano Crítico).
 
------
-
-## Próximos Passos (Roadmap)
-
-1.  **Exportação/Importação:** Salvar o estado atual de um card em JSON.
-2.  **Modo Combate:** Sistema de Iniciativa visual, com destaque para o turno atual.
-3.  ~~**Suporte Multi-Sistema:**~~ Implementação do padrão *Adapter* no backend para suportar fichas de D\&D 5e e Tormenta20.
-4.  **Player de Música:** Sincronização de áudio entre clientes conectados na mesma sessão.

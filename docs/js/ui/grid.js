@@ -5,6 +5,7 @@
 
 import * as card from './card.js'; 
 import * as combat from './combat.js';
+import { getImporterScript } from '../lib/importer-template.js';
 
 let gridElement = null;
 let onDeleteCallback = null;
@@ -57,38 +58,50 @@ export function initializeGrid(onDelete) {
   gridElement = document.getElementById('dashboard-grid');
   onDeleteCallback = onDelete;
 
-  gridElement.addEventListener('click', (e) => {
+  gridElement.addEventListener('click', async (e) => {
     const target = e.target;
 
-    // 1. Ação: Deletar (Botão X)
+    // 1. Deletar
     const deleteButton = target.closest('.card-delete-btn');
     if (deleteButton) {
       e.stopPropagation(); 
-      
       const cardElement = deleteButton.closest('.character-card');
       
-      // --- LÓGICA DE REMOÇÃO DIFERENCIADA ---
-      // Verifica se o elemento é um Token de Ação (Mini-card de combate)
       if (cardElement && cardElement.classList.contains('action-token')) {
-          // Descobre o índice visual deste token no grid
           const allCards = Array.from(gridElement.children).filter(el => el.classList.contains('character-card'));
           const index = allCards.indexOf(cardElement);
-          
-          if (index > -1) {
-              // Remove apenas o token da lista de combate
-              combat.removeCombatantByIndex(index);
-          }
-          return; // Impede que a deleção "vaze" para o card principal
+          if (index > -1) combat.removeCombatantByIndex(index);
+          return;
       }
-      // --------------------------------------
 
-      // Se não for token, é um Card Principal: deleta o personagem do sistema
       const linkToDelete = deleteButton.dataset.link;
       if (onDeleteCallback) onDeleteCallback(linkToDelete);
       return;
     }
 
-    // 2. Ação: Adicionar Token de Combate (Botão +)
+    // 2. Botão Script (BETA)
+    const betaButton = target.closest('.card-beta-btn');
+    if (betaButton) {
+        e.stopPropagation();
+        const charId = betaButton.dataset.charId;
+        
+        if (charId) {
+            // Gera o código com o ID injetado
+            const scriptCode = getImporterScript(charId);
+            
+            try {
+                // Copia para o clipboard (Exige contexto async)
+                await navigator.clipboard.writeText(scriptCode);
+                alert(`⚡ Script copiado!\n\n1. Vá no site do CRIS.\n2. Abra o Console (F12).\n3. Cole (Ctrl+V) e dê Enter.`);
+            } catch (err) {
+                console.error('Erro ao copiar:', err);
+                alert('Erro ao copiar script. Verifique permissões.');
+            }
+        }
+        return;
+    }
+
+    // 3. Token
     const addTokenButton = target.closest('.card-add-token-btn');
     if (addTokenButton) {
       e.stopPropagation();
@@ -97,7 +110,7 @@ export function initializeGrid(onDelete) {
       return;
     }
 
-    // 3. Ação: Alternar Accordion Aninhado (Item)
+    // 4. Accordions
     const innerAccordionHeader = target.closest('.inner-accordion-header');
     if (innerAccordionHeader) {
       e.stopPropagation(); 
@@ -105,8 +118,6 @@ export function initializeGrid(onDelete) {
       gridElement.dispatchEvent(new CustomEvent('layout-change', { bubbles: true }));
       return;
     }
-
-    // 4. Ação: Alternar Accordion Pai (Categoria)
     const accordionHeader = target.closest('.accordion-header');
     if (accordionHeader) {
       e.stopPropagation(); 
@@ -115,9 +126,8 @@ export function initializeGrid(onDelete) {
       return;
     }
 
-    // 5. Ação: Expandir Card (Clique no corpo)
-    // Ignora cliques em inputs, botões ou na área de arrasto
-    if (target.closest('input') || target.closest('button') || target.closest('.card-grab-zone')) {
+    // 5. Expandir Card
+    if (target.closest('input') || target.closest('button') || target.closest('.card-grab-zone') || target.closest('.card-beta-btn')) {
         return;
     }
 
